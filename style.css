@@ -1,0 +1,5 @@
+body{background:#0b1220;color:#fff;font-family:Arial;margin:0;padding:20px}
+.wrap{max-width:900px;margin:auto}
+.card{background:#111a2e;padding:15px;border-radius:10px;margin-bottom:15px}
+textarea,input{width:100%;margin-bottom:10px;padding:8px}
+button{padding:10px 15px;background:#3b82f6;color:#fff;border:0;border-radius:6px}

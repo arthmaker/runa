@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Template Placeholder Generator</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <h1>Generator Artikel (Placeholder → ZIP)</h1>
+      <p class="sub">Upload template HTML, isi placeholder, lalu download ZIP.</p>
+    </header>
+
+    <section class="card">
+      <h2>1) Upload template</h2>
+      <input id="templateFile" type="file" accept=".html,.htm" />
+      <div class="grid">
+        <input id="phTitle" value="*JUDUL*" />
+        <input id="phLink" value="*LINK*" />
+        <input id="phImg" value="*GAMBAR*" />
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2) Data</h2>
+      <textarea id="titles" placeholder="Judul (1 baris)"></textarea>
+      <textarea id="links" placeholder="Link (1 baris)"></textarea>
+      <textarea id="images" placeholder="Gambar (1 baris)"></textarea>
+      <input id="zipName" value="artikel-output.zip" />
+      <button id="btnGenerate">Generate ZIP</button>
+    </section>
+
+    <section class="card">
+      <div id="status">Idle</div>
+      <div id="report"></div>
+    </section>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
