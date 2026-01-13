@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tools Anchor & Link • RUNA</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">◎</div>
+        <div>
+          <div class="title">RUNA</div>
+          <div class="sub">Tools • Anchor &amp; Link</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn ghost" href="./index.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">← Kembali ke Generator</a>
+        <a class="btn ghost" href="./image.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">Tools Link Gambar →</a>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="card-head">
+          <h2>1) Input Judul</h2>
+          <span class="pill">Judul</span>
+        </div>
+
+        <div class="field">
+          <label>Daftar Judul</label>
+          <textarea id="tTitles" placeholder="1 judul per baris"></textarea>
+          <div class="help">Digunakan untuk membuat <strong>anchor tag</strong> dan <strong>slug</strong> (diambil dari 50 karakter awal judul).</div>
+        </div>
+
+        <div class="three">
+          <div class="field">
+            <label>Domain / Base URL</label>
+            <input id="baseUrl" value="https://domain/" />
+            <div class="help">Contoh: <code>https://domain/</code></div>
+          </div>
+          <div class="field">
+            <label>Suffix Link</label>
+            <input id="suffix" value=".html" />
+            <div class="help">Contoh: <code>.html</code> / <code>/</code> / kosong</div>
+          </div>
+          <div class="field">
+            <label>Max karakter dari awal judul</label>
+            <input id="maxChars" value="50" inputmode="numeric" />
+            <div class="help">Default: <code>50</code> (sesuai kebutuhanmu)</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnMakeAnchor" class="btn primary" type="button">Generate Anchor Text</button>
+          <button id="btnExtract" class="btn" type="button">Ambil Link dari Anchor</button>
+          <button id="btnClear" class="btn danger" type="button">Reset</button>
+        </div>
+
+        <div id="tStatus" class="status idle" style="margin-top:12px;">Masukkan judul, lalu klik Generate Anchor Text.</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>2) Output Anchor</h2>
+          <span class="pill">Anchor</span>
+        </div>
+
+        <div class="field">
+          <label>ANCHOR TEXT (hasil)</label>
+          <textarea id="outAnchor" placeholder="Hasil anchor tag muncul di sini"></textarea>
+          <div class="actions" style="justify-content:flex-end;">
+            <button id="copyAnchor" class="btn ghost" type="button">Copy Anchor</button>
+          </div>
+          <div class="help">Format: <code>&lt;a href="https://domain/slug.html"&gt;3 keyword penting&lt;/a&gt;</code></div>
+        </div>
+
+        <div class="field">
+          <label>LINK (hasil dari anchor)</label>
+          <textarea id="outLinks" placeholder="Klik 'Ambil Link dari Anchor' untuk menghasilkan daftar link"></textarea>
+          <div class="actions" style="justify-content:flex-end;">
+            <button id="copyLinks" class="btn ghost" type="button">Copy Link</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>RUNA • Client-side generator</div>
+    </footer>
+  </div>
+
+  <script src="./anchor.js"></script>
+</body>
+</html>
