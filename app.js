@@ -4,6 +4,7 @@ const $ = (id) => document.getElementById(id);
 let templateText = "";
 let templateName = "";
 let articleRawText = "";
+let uploadedImages = [];
 
 function setStatus(type, msg){
   const el = $("status");
@@ -57,6 +58,30 @@ function filenameFromLink(url){
   }
 }
 
+function safeFilename(name){
+  return String(name || "")
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "")
+    .slice(0, 180) || "file";
+}
+
+function imageNameFromUrl(url, fallbackExt){
+  // Use last path segment from URL as desired output name.
+  // If URL has no extension, use uploaded file extension.
+  try{
+    const u = new URL(url);
+    let base = u.pathname.split("/").filter(Boolean).pop() || "image";
+    base = decodeURIComponent(base);
+    const hasExt = /\.[a-z0-9]{2,5}$/i.test(base);
+    if(!hasExt && fallbackExt) base += fallbackExt;
+    return safeFilename(base);
+  }catch{
+    return safeFilename("image" + (fallbackExt || ""));
+  }
+}
+
 // Integrity masking helpers
 function maskTemplateWithTokens(text, phTitle, phLink, phImg, phArticle){
   return text.split(phTitle).join("__PH_TITLE__")
@@ -106,6 +131,8 @@ $("btnReset").addEventListener("click", ()=>{
   $("images").value = "";
   $("articles").value = "";
   $("articleFile").value = "";
+  $("imageFiles").value = "";
+  uploadedImages = [];
   $("zipName").value = "artikel-output.zip";
   $("phTitle").value = "*JUDUL*";
   $("phLink").value = "*LINK*";
@@ -113,6 +140,7 @@ $("btnReset").addEventListener("click", ()=>{
   $("phArticle").value = "*ARTIKEL*";
   $("chkStrict").checked = true;
   $("chkNameFromLink").checked = true;
+  $("chkAutoRefresh").checked = true;
   setStatus("idle", "Reset selesai.");
   report([]);
 });
@@ -137,6 +165,15 @@ $("articleFile").addEventListener("change", async (e)=>{
   $("articles").value = articleRawText;
   setStatus("ok", `Artikel dimuat dari file: ${f.name}`);
   report([{k:"Artikel loaded", v:`<code>${escapeHtml(f.name)}</code> • ${articleRawText.length.toLocaleString()} karakter`}]);
+});
+
+// load images (optional)
+$("imageFiles").addEventListener("change", (e)=>{
+  uploadedImages = Array.from(e.target.files || []);
+  if(uploadedImages.length){
+    setStatus("ok", `Gambar dipilih: ${uploadedImages.length} file`);
+    report([{k:"Images selected", v:`${uploadedImages.length} file (akan di-rename mengikuti daftar GAMBAR)`}]);
+  }
 });
 
 function validateBasics(){
@@ -168,6 +205,12 @@ function validateBasics(){
   const arrImg   = lines($("images").value);
   const arrArticle = parseArticleBlocks($("articles").value);
   const n = Math.max(arrTitle.length, arrLink.length, arrImg.length);
+
+  if(uploadedImages.length && uploadedImages.length !== n){
+    setStatus("bad", `ERROR: Jumlah file gambar yang di-upload tidak sama. Upload=${uploadedImages.length}, Baris=${n}.`);
+    report([{k:"Upload gambar", v:`Upload=<code>${uploadedImages.length}</code>, Baris=<code>${n}</code>. Samakan jumlahnya agar rename sesuai daftar GAMBAR.`}]);
+    return { ok:false };
+  }
 
   if(n === 0){
     setStatus("bad", "ERROR: Data kosong. Isi minimal 1 baris.");
@@ -234,8 +277,13 @@ function buildOutputs(payload){
 
 $("btnGenerate").addEventListener("click", async ()=>{
   try{
+    // prevent double click
+    $("btnGenerate").disabled = true;
     const v = validateBasics();
-    if(!v.ok) return;
+    if(!v.ok){
+      $("btnGenerate").disabled = false;
+      return;
+    }
 
     const { outputs, integrityErrors } = buildOutputs(v);
 
@@ -245,6 +293,7 @@ $("btnGenerate").addEventListener("click", async ()=>{
         {k:"Integrity check", v:`Gagal pada: <code>${integrityErrors.map(e=>`#${e.i}`).join(", ")}</code>`},
         {k:"Saran", v:`Gunakan placeholder yang lebih unik (mis. <code>{{JUDUL}}</code>) dan pastikan template hanya berisi placeholder itu.`}
       ]);
+      $("btnGenerate").disabled = false;
       return;
     }
 
@@ -256,6 +305,36 @@ $("btnGenerate").addEventListener("click", async ()=>{
       zip.file(f.fname, f.out);
     }
 
+    // Optional: add images into ZIP and rename based on daftar GAMBAR
+    const imgFiles = uploadedImages || [];
+    if(imgFiles.length){
+      const imgFolder = zip.folder("images");
+      const desired = v.arrImg; // already trimmed & filtered
+
+      if(imgFiles.length !== desired.length){
+        setStatus("warn", `Peringatan: jumlah gambar di-upload (${imgFiles.length}) tidak sama dengan jumlah baris GAMBAR (${desired.length}). Yang diproses = ${Math.min(imgFiles.length, desired.length)}.`);
+      }
+
+      const m = Math.min(imgFiles.length, desired.length);
+      const used = new Set();
+      for(let i=0;i<m;i++){
+        const file = imgFiles[i];
+        const ext = (()=>{
+          const m2 = (file.name || "").match(/\.[a-z0-9]{2,5}$/i);
+          return m2 ? m2[0].toLowerCase() : "";
+        })();
+        let outName = imageNameFromUrl(desired[i], ext);
+        if(!/\.[a-z0-9]{2,5}$/i.test(outName) && ext) outName += ext;
+        if(used.has(outName)){
+          const base = outName.replace(/\.[a-z0-9]{2,5}$/i, "");
+          const eext = (outName.match(/\.[a-z0-9]{2,5}$/i) || [""])[0];
+          outName = `${base}-${i+1}${eext}`;
+        }
+        used.add(outName);
+        imgFolder.file(outName, file);
+      }
+    }
+
     setStatus("ok", `Sukses: ${outputs.length} file dibuat. Menyiapkan ZIP...`);
     report([
       {k:"Output", v:`${outputs.length} file HTML`},
@@ -265,9 +344,20 @@ $("btnGenerate").addEventListener("click", async ()=>{
 
     const blob = await zip.generateAsync({type:"blob"});
     saveAs(blob, zipName);
+
+    // Auto refresh to avoid accidental duplicate generation
+    if($("chkAutoRefresh").checked){
+      setStatus("ok", "ZIP terunduh. Auto refresh aktif — halaman akan dimuat ulang.");
+      setTimeout(()=>{
+        try{ location.reload(); }catch{ $("btnGenerate").disabled = false; }
+      }, 900);
+    }else{
+      $("btnGenerate").disabled = false;
+    }
   }catch(err){
     setStatus("bad", `ERROR: ${err?.message || String(err)}`);
     report([{k:"Exception", v:`<code>${escapeHtml(err?.stack || String(err))}</code>`}]);
+    $("btnGenerate").disabled = false;
   }
 });
 
