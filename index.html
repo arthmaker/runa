@@ -62,6 +62,11 @@
             <input id="phImg" value="*GAMBAR*" />
             <div class="help">Contoh unik: <code>{{GAMBAR}}</code></div>
           </div>
+          <div class="field">
+            <label>Placeholder Artikel</label>
+            <input id="phArticle" value="*ARTIKEL*" />
+            <div class="help">Untuk konten panjang. Contoh: <code>{{ARTIKEL}}</code></div>
+          </div>
         </div>
 
         <div class="mini">
@@ -91,6 +96,20 @@
           <div class="field">
             <label>GAMBAR</label>
             <textarea id="images" placeholder="1 gambar per baris"></textarea>
+          </div>
+
+          <div class="field">
+            <label>ARTIKEL (blok panjang)</label>
+            <div class="help">
+              Format blok: baris pembuka <code>-###-</code>, isi artikel, lalu baris penutup <code>-$$$-</code>.
+              Contoh:<br>
+              <code>-###-</code><br>
+              <code>&lt;p&gt;Isi artikel...&lt;/p&gt;</code><br>
+              <code>-$$$-</code>
+            </div>
+            <textarea id="articles" placeholder="Tempel artikel di sini (pakai marker -###- dan -$$$-) atau upload file di bawah"></textarea>
+            <input id="articleFile" type="file" accept=".txt,.md,.html,.htm,text/plain,text/markdown,text/html" />
+            <div class="help">Upload <code>artikel.txt</code> berisi banyak blok artikel. Mapping berdasarkan urutan (blok #1 untuk judul baris #1, dst).</div>
           </div>
 
           <div class="side">
