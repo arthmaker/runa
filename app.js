@@ -3,6 +3,7 @@ const $ = (id) => document.getElementById(id);
 
 let templateText = "";
 let templateName = "";
+let articleRawText = "";
 
 function setStatus(type, msg){
   const el = $("status");
@@ -27,6 +28,22 @@ function report(items){
 function lines(text){
   return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
 }
+
+// Parse artikel blocks using markers:
+// -###-  (start marker on its own line)
+// ...
+// -$$$-  (end marker on its own line)
+function parseArticleBlocks(text){
+  const s = String(text || "");
+  const re = /-###-\s*([\s\S]*?)\s*-\$\$\$-/g;
+  const out = [];
+  let m;
+  while((m = re.exec(s))){
+    const block = (m[1] ?? "").trim();
+    if(block) out.push(block);
+  }
+  return out;
+}
 function filenameFromLink(url){
   try{
     const u = new URL(url);
@@ -41,15 +58,17 @@ function filenameFromLink(url){
 }
 
 // Integrity masking helpers
-function maskTemplateWithTokens(text, phTitle, phLink, phImg){
+function maskTemplateWithTokens(text, phTitle, phLink, phImg, phArticle){
   return text.split(phTitle).join("__PH_TITLE__")
              .split(phLink).join("__PH_LINK__")
-             .split(phImg).join("__PH_IMG__");
+             .split(phImg).join("__PH_IMG__")
+             .split(phArticle).join("__PH_ARTICLE__");
 }
-function maskOutputToTokens(text, title, link, img){
+function maskOutputToTokens(text, title, link, img, article){
   return text.split(title).join("__PH_TITLE__")
              .split(link).join("__PH_LINK__")
-             .split(img).join("__PH_IMG__");
+             .split(img).join("__PH_IMG__")
+             .split(article).join("__PH_ARTICLE__");
 }
 
 async function loadTemplate(file){
@@ -79,15 +98,19 @@ dz.addEventListener("drop", async (e)=>{
 
 $("btnReset").addEventListener("click", ()=>{
   templateText = ""; templateName = "";
+  articleRawText = "";
   $("templateFile").value = "";
   $("tplMeta").textContent = "Belum dimuat";
   $("titles").value = "";
   $("links").value = "";
   $("images").value = "";
+  $("articles").value = "";
+  $("articleFile").value = "";
   $("zipName").value = "artikel-output.zip";
   $("phTitle").value = "*JUDUL*";
   $("phLink").value = "*LINK*";
   $("phImg").value = "*GAMBAR*";
+  $("phArticle").value = "*ARTIKEL*";
   $("chkStrict").checked = true;
   $("chkNameFromLink").checked = true;
   setStatus("idle", "Reset selesai.");
@@ -98,8 +121,22 @@ $("btnLoadSample").addEventListener("click", ()=>{
   $("titles").value = ["Judul Contoh 1","Judul Contoh 2"].join("\n");
   $("links").value  = ["https://example.com/fyp/contoh-1.html","https://example.com/fyp/contoh-2.html"].join("\n");
   $("images").value = ["https://example.com/img/1.webp","https://example.com/img/2.webp"].join("\n");
+  $("articles").value = [
+    "-###-\n<p>Ini contoh artikel panjang 1. Anda bisa menulis HTML lengkap di sini.</p>\n-$$$-",
+    "-###-\n<p>Ini contoh artikel panjang 2. Pastikan marker <strong>-###-</strong> dan <strong>-$$$-</strong> ada di baris sendiri.</p>\n-$$$-"
+  ].join("\n");
   setStatus("warn", "Contoh data terisi. Ganti dengan data asli.");
   report([{k:"Sample", v:"Data contoh sudah diisi."}]);
+});
+
+// load artikel.txt (optional)
+$("articleFile").addEventListener("change", async (e)=>{
+  const f = e.target.files?.[0];
+  if(!f) return;
+  articleRawText = await f.text();
+  $("articles").value = articleRawText;
+  setStatus("ok", `Artikel dimuat dari file: ${f.name}`);
+  report([{k:"Artikel loaded", v:`<code>${escapeHtml(f.name)}</code> • ${articleRawText.length.toLocaleString()} karakter`}]);
 });
 
 function validateBasics(){
@@ -110,7 +147,8 @@ function validateBasics(){
   const phTitle = $("phTitle").value;
   const phLink  = $("phLink").value;
   const phImg   = $("phImg").value;
-  if(!phTitle || !phLink || !phImg){
+  const phArticle = $("phArticle").value;
+  if(!phTitle || !phLink || !phImg || !phArticle){
     setStatus("bad", "ERROR: Placeholder tidak boleh kosong.");
     return { ok:false };
   }
@@ -118,6 +156,7 @@ function validateBasics(){
   if(!templateText.includes(phTitle)) missing.push(phTitle);
   if(!templateText.includes(phLink))  missing.push(phLink);
   if(!templateText.includes(phImg))   missing.push(phImg);
+  if(!templateText.includes(phArticle)) missing.push(phArticle);
   if(missing.length){
     setStatus("bad", `ERROR: Placeholder tidak ditemukan di template: ${missing.join(", ")}`);
     report([{k:"Placeholder missing", v:`<code>${escapeHtml(missing.join(", "))}</code>`}]);
@@ -127,6 +166,7 @@ function validateBasics(){
   const arrTitle = lines($("titles").value);
   const arrLink  = lines($("links").value);
   const arrImg   = lines($("images").value);
+  const arrArticle = parseArticleBlocks($("articles").value);
   const n = Math.max(arrTitle.length, arrLink.length, arrImg.length);
 
   if(n === 0){
@@ -139,29 +179,39 @@ function validateBasics(){
     return { ok:false };
   }
 
-  return { ok:true, phTitle, phLink, phImg, arrTitle, arrLink, arrImg, n };
+  if(arrArticle.length !== n){
+    setStatus("bad", `ERROR: Jumlah blok ARTIKEL tidak sama. Artikel=${arrArticle.length}, Baris=${n}. Pastikan format marker -###- ... -$$$- benar.`);
+    report([
+      {k:"Artikel blocks", v:`Artikel=<code>${arrArticle.length}</code>, Baris=<code>${n}</code>`},
+      {k:"Format", v:`Gunakan marker pembuka <code>-###-</code> dan penutup <code>-$$$-</code> (di baris sendiri).`}
+    ]);
+    return { ok:false };
+  }
+
+  return { ok:true, phTitle, phLink, phImg, phArticle, arrTitle, arrLink, arrImg, arrArticle, n };
 }
 
 function buildOutputs(payload){
-  const { phTitle, phLink, phImg, arrTitle, arrLink, arrImg, n } = payload;
+  const { phTitle, phLink, phImg, phArticle, arrTitle, arrLink, arrImg, arrArticle, n } = payload;
   const strict = $("chkStrict").checked;
   const nameFromLink = $("chkNameFromLink").checked;
 
-  const templateMasked = maskTemplateWithTokens(templateText, phTitle, phLink, phImg);
+  const templateMasked = maskTemplateWithTokens(templateText, phTitle, phLink, phImg, phArticle);
   const outputs = [];
   const integrityErrors = [];
   const nameSet = new Set();
 
   for(let i=0;i<n;i++){
-    const title = arrTitle[i], link = arrLink[i], img = arrImg[i];
+    const title = arrTitle[i], link = arrLink[i], img = arrImg[i], article = arrArticle[i];
 
     let out = templateText
       .split(phTitle).join(title)
       .split(phLink).join(link)
-      .split(phImg).join(img);
+      .split(phImg).join(img)
+      .split(phArticle).join(article);
 
     if(strict){
-      const outMasked = maskOutputToTokens(out, title, link, img);
+      const outMasked = maskOutputToTokens(out, title, link, img, article);
       if(outMasked !== templateMasked){
         integrityErrors.push({i:i+1, reason:"Integrity mismatch (ada perubahan selain placeholder)"});
       }
@@ -258,5 +308,5 @@ $("btnClose").addEventListener("click", ()=>{
 // initial
 setStatus("idle", "Upload template untuk memulai.");
 report([
-  {k:"Catatan", v:"Gunakan placeholder unik agar aman (mis. <code>{{JUDUL}}</code>, <code>{{LINK}}</code>, <code>{{GAMBAR}}</code>)."}
+  {k:"Catatan", v:"Gunakan placeholder unik agar aman (mis. <code>{{JUDUL}}</code>, <code>{{LINK}}</code>, <code>{{GAMBAR}}</code>, <code>{{ARTIKEL}}</code>)."}
 ]);
