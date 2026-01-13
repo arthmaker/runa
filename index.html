@@ -23,6 +23,7 @@
       </div>
 
       <div class="top-actions">
+        <a class="btn ghost" href="./anchor.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">Tools Anchor &amp; Link Gambar</a>
         <button id="btnLoadSample" class="btn ghost" type="button">Isi Contoh</button>
         <button id="btnReset" class="btn danger" type="button">Reset</button>
       </div>
@@ -124,6 +125,14 @@
               <button id="btnPreview" class="btn" type="button">Preview 1 File</button>
             </div>
 
+            <div class="field">
+              <label>Upload Gambar (opsional)</label>
+              <input id="imageFiles" type="file" accept="image/*" multiple />
+              <div class="help">
+                Jika di-upload, file gambar akan dimasukkan ke ZIP dan <strong>di-rename</strong> mengikuti daftar <em>GAMBAR</em> (nama file diambil dari URL). Urutan gambar mengikuti urutan baris.
+              </div>
+            </div>
+
             <div class="toggle">
               <input id="chkStrict" type="checkbox" checked />
               <label for="chkStrict">
@@ -137,6 +146,14 @@
               <label for="chkNameFromLink">
                 <div class="t-title">Nama file dari LINK</div>
                 <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
+              </label>
+            </div>
+
+            <div class="toggle">
+              <input id="chkAutoRefresh" type="checkbox" checked />
+              <label for="chkAutoRefresh">
+                <div class="t-title">Auto refresh setelah download</div>
+                <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
               </label>
             </div>
           </div>
