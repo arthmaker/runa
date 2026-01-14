@@ -64,6 +64,35 @@ body{
   gap: 16px;
   margin-top: 16px;
 }
+
+/* ---------- Custom Layout (drag + resize) ---------- */
+.grid.layout-on{
+  display:block; /* panels become absolutely positioned */
+  position: relative;
+  gap: 0;
+}
+
+.grid.layout-on .layout-panel{
+  position:absolute;
+  margin:0;
+  user-select: none;
+}
+
+.grid.layout-on.layout-editing .layout-panel{
+  cursor: move;
+  outline: 2px dashed rgba(59,130,246,.55);
+  outline-offset: 4px;
+}
+
+.grid.layout-on.layout-editing .layout-panel:active{
+  outline-color: rgba(59,130,246,.85);
+}
+
+/* A small helper pill in topbar (optional) */
+.pill.layout{
+  background: rgba(59,130,246,.18);
+  border-color: rgba(59,130,246,.35);
+}
 @media (max-width: 980px){
   .grid{ grid-template-columns:1fr; }
 }

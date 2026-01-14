@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tools Anchor & Link • RUNA</title>
   <link rel="stylesheet" href="./style.css" />
+  <!-- Drag/resize layout (optional) -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
 </head>
 <body>
   <div class="bg-glow"></div>
@@ -21,6 +23,10 @@
 
       <div class="top-actions">
         <a class="btn ghost" href="./index.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">← Kembali ke Generator</a>
+        <span id="layoutPill" class="pill layout" title="Layout mode">Default</span>
+        <button id="btnLayoutEdit" class="btn ghost" type="button">Atur Layout</button>
+        <button id="btnLayoutSave" class="btn ghost" type="button">Save Layout</button>
+        <button id="btnLayoutReset" class="btn ghost" type="button">Reset Layout</button>
       </div>
     </header>
 
@@ -88,9 +94,9 @@
           </div>
         </div>
       </section>
-</main>
-    <!-- Tools Link Gambar (dibawah, agar workflow lebih simple) -->
-    <section class="card" style="margin-top:16px;">
+
+      <!-- Tools Link Gambar (jadi satu layout dengan card lain) -->
+      <section class="card">
       <div class="card-head">
         <h2>3) Tools Link Gambar</h2>
         <span class="pill">10 Link</span>
@@ -133,7 +139,9 @@
           <button id="btnCopy" class="btn" type="button">Copy Hasil</button>
         </div>
       </div>
-    </section>
+      </section>
+
+    </main>
 
 
     <footer class="footer">
@@ -143,5 +151,13 @@
 
   <script src="./anchor.js"></script>
   <script src="./image.js"></script>
+  <script src="./layout.js"></script>
+  <script>
+    window.initLayoutManager?.({
+      containerSelector: 'main.grid',
+      panelSelector: 'section.card',
+      storageKey: 'runa_layout_anchor'
+    });
+  </script>
 </body>
 </html>

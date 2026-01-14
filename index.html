@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Placeholder Generator • GitHub Pages</title>
   <link rel="stylesheet" href="./style.css" />
+  <!-- Drag/resize layout (optional) -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
   <!-- JSZip + FileSaver (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
@@ -24,6 +26,11 @@
 
       <div class="top-actions">
         <a class="btn ghost" href="./anchor.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">Tools Anchor &amp; Link</a>
+
+        <span id="layoutPill" class="pill layout" title="Layout mode">Default</span>
+        <button id="btnLayoutEdit" class="btn ghost" type="button">Atur Layout</button>
+        <button id="btnLayoutSave" class="btn ghost" type="button">Save Layout</button>
+        <button id="btnLayoutReset" class="btn ghost" type="button">Reset Layout</button>
         
         <button id="btnLoadSample" class="btn ghost" type="button">Isi Contoh</button>
         <button id="btnReset" class="btn danger" type="button">Reset</button>
@@ -200,5 +207,14 @@
   </dialog>
 
   <script src="./app.js"></script>
+  <script src="./layout.js"></script>
+  <script>
+    // Enable draggable/resizable panels + saved layout
+    window.initLayoutManager?.({
+      containerSelector: 'main.grid',
+      panelSelector: 'section.card',
+      storageKey: 'runa_layout_index'
+    });
+  </script>
 </body>
 </html>
