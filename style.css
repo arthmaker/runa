@@ -74,6 +74,11 @@ body{
   backdrop-filter: blur(10px);
 }
 
+.status-card{
+  padding: 20px;
+}
+
+
 .card-head{
   display:flex; align-items:center; justify-content:space-between;
   gap:10px; margin-bottom: 12px;
