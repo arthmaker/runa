@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tools Anchor & Link • RUNA</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body class="anchor">
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">◎</div>
+        <div>
+          <h1>Tools Anchor &amp; Link</h1>
+          <p>Generate anchor text dari daftar judul, lalu ambil link (href) dari hasil anchor.</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <a class="btn ghost" href="./index.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">← Kembali ke Generator</a>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card resizable-v" data-size-key="anchor_input_card">
+        <div class="card-head">
+          <h2>1) Input</h2>
+          <span class="pill">Judul</span>
+        </div>
+
+        <div class="field">
+          <label>Daftar Judul</label>
+          <textarea id="tTitles" placeholder="1 judul per baris"></textarea>
+          <div class="help">Dipakai sebagai <strong>anchor text</strong> dan sebagai bahan <strong>slug</strong>.</div>
+        </div>
+
+        <div class="three">
+          <div class="field">
+            <label>Domain / Base URL</label>
+            <input id="baseUrl" value="https://domain/" />
+            <div class="help">Anchor: <code>&lt;a href="baseUrl + slug + .html"&gt;...&lt;/a&gt;</code></div>
+          </div>
+          <div class="field">
+            <label>Suffix URL</label>
+            <input id="suffix" value=".html" />
+            <div class="help">Default: <code>.html</code></div>
+          </div>
+          <div class="field">
+            <label>Limit Slug</label>
+            <input id="slugLimit" value="50" />
+            <div class="help">Limit utama slug. Kata terakhir boleh selesai sampai +12 karakter.</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnMakeAnchor" class="btn primary" type="button">Generate Anchor Text</button>
+          <button id="btnExtractLink" class="btn" type="button">Ambil Link dari Anchor</button>
+          
+<button class="btn btn-ghost" id="btnSaveLayout" type="button">Save Layout</button>
+<button class="btn btn-ghost" id="btnResetLayout" type="button">Reset Layout</button>
+
+<button id="btnClear" class="btn danger" type="button">Reset</button>
+        </div>
+
+        <div id="tStatus" class="status idle" style="margin-top:12px;">Masukkan judul, lalu klik Generate Output.</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>2) Output</h2>
+          <span class="pill">Copy-paste</span>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <label>Anchor Text (1 per baris)</label>
+            <textarea id="outAnchor" placeholder="Hasil anchor text" class="user-resizable" data-size-key="anchor_out_anchor"></textarea>
+            <div class="actions" style="margin-top:8px;">
+              <button class="btn" id="copyAnchor" type="button">Copy Anchor</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Link (1 per baris)</label>
+            <textarea id="outLinks" placeholder="Hasil link dari href" class="user-resizable" data-size-key="anchor_out_links"></textarea>
+            <div class="actions" style="margin-top:8px;">
+              <button class="btn" id="copyLinks" type="button">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </section>
+</main>
+    <!-- Tools Link Gambar (dibawah, agar workflow lebih simple) -->
+    <section class="card" style="margin-top:16px;">
+      <div class="card-head">
+        <h2>3) Tools Link Gambar</h2>
+        <span class="pill">10 Link</span>
+      </div>
+
+      <p class="muted" style="margin-top:-4px;">
+        Isi 3 box di bawah, lalu klik Generate untuk membuat 10 link gambar berurutan. Setelah berhasil, sistem akan mengisi otomatis ke Generator dan berpindah dalam 2 detik.
+      </p>
+
+      <div class="three" style="margin-top:10px;">
+        <div class="field">
+          <label>Box 1: Domain / Folder</label>
+          <input id="imgDomain" placeholder="https://gomoonchild.github.io/berita/" />
+          <div class="help">Pastikan diakhiri <code>/</code> (akan otomatis ditambahkan jika belum).</div>
+        </div>
+
+        <div class="field">
+          <label>Box 2: Nama file (tanpa angka)</label>
+          <input id="imgBaseName" placeholder="mahjongways-gameko" />
+          <div class="help">Contoh: <code>mahjongways-gameko</code> → menghasilkan <code>mahjongways-gameko1</code> s/d <code>mahjongways-gameko10</code>.</div>
+        </div>
+
+        <div class="field">
+          <label>Box 3: Format</label>
+          <input id="imgExt" placeholder=".webp" />
+          <div class="help">Contoh: <code>.webp</code>, <code>.png</code>, <code>.jpg</code></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnGenerate" class="btn primary" type="button">Generate 10 Link</button>
+        <button id="btnReset" class="btn ghost" type="button">Reset</button>
+        <div id="imgStatus" class="status idle" style="flex:1;">Masukkan domain, nama file, dan format.</div>
+      </div>
+
+      <div class="field" style="margin-top:10px;">
+        <label>Hasil</label>
+        <textarea id="out" rows="6" placeholder="Hasil link akan muncul di sini..." readonly></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button id="btnCopy" class="btn" type="button">Copy Hasil</button>
+        </div>
+      </div>
+    </section>
+
+
+    <footer class="footer">
+      <span>100% di browser • Tidak mengirim data ke server</span>
+    </footer>
+  </div>
+
+  <script src="./anchor.js"></script>
+  <script src="./image.js"></script>
+</body>
+</html>
