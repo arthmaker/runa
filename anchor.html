@@ -104,6 +104,52 @@
         </details>
       </section>
     </main>
+    <!-- Tools Link Gambar (dibawah, agar workflow lebih simple) -->
+    <section class="card" style="margin-top:16px;">
+      <div class="card-head">
+        <h2>3) Tools Link Gambar</h2>
+        <span class="pill">10 Link</span>
+      </div>
+
+      <p class="muted" style="margin-top:-4px;">
+        Isi 3 box di bawah, lalu klik Generate untuk membuat 10 link gambar berurutan. Setelah berhasil, sistem akan mengisi otomatis ke Generator dan berpindah dalam 2 detik.
+      </p>
+
+      <div class="three" style="margin-top:10px;">
+        <div class="field">
+          <label>Box 1: Domain / Folder</label>
+          <input id="imgDomain" placeholder="https://gomoonchild.github.io/berita/" />
+          <div class="help">Pastikan diakhiri <code>/</code> (akan otomatis ditambahkan jika belum).</div>
+        </div>
+
+        <div class="field">
+          <label>Box 2: Nama file (tanpa angka)</label>
+          <input id="imgBaseName" placeholder="mahjongways-gameko" />
+          <div class="help">Contoh: <code>mahjongways-gameko</code> → menghasilkan <code>mahjongways-gameko1</code> s/d <code>mahjongways-gameko10</code>.</div>
+        </div>
+
+        <div class="field">
+          <label>Box 3: Format</label>
+          <input id="imgExt" placeholder=".webp" />
+          <div class="help">Contoh: <code>.webp</code>, <code>.png</code>, <code>.jpg</code></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnGenerate" class="btn primary" type="button">Generate 10 Link</button>
+        <button id="btnReset" class="btn ghost" type="button">Reset</button>
+        <div id="imgStatus" class="status idle" style="flex:1;">Masukkan domain, nama file, dan format.</div>
+      </div>
+
+      <div class="field" style="margin-top:10px;">
+        <label>Hasil</label>
+        <textarea id="out" rows="6" placeholder="Hasil link akan muncul di sini..." readonly></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button id="btnCopy" class="btn" type="button">Copy Hasil</button>
+        </div>
+      </div>
+    </section>
+
 
     <footer class="footer">
       <span>100% di browser • Tidak mengirim data ke server</span>
@@ -111,5 +157,6 @@
   </div>
 
   <script src="./anchor.js"></script>
+  <script src="./image.js"></script>
 </body>
 </html>
