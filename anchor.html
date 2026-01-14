@@ -6,7 +6,7 @@
   <title>Tools Anchor & Link • RUNA</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body class="anchor">
+<body>
   <div class="bg-glow"></div>
 
   <div class="container">
@@ -25,7 +25,7 @@
     </header>
 
     <main class="grid">
-      <section class="card resizable-v" data-size-key="anchor_input_card">
+      <section class="card">
         <div class="card-head">
           <h2>1) Input</h2>
           <span class="pill">Judul</span>
@@ -58,11 +58,7 @@
         <div class="actions">
           <button id="btnMakeAnchor" class="btn primary" type="button">Generate Anchor Text</button>
           <button id="btnExtractLink" class="btn" type="button">Ambil Link dari Anchor</button>
-          
-<button class="btn btn-ghost" id="btnSaveLayout" type="button">Save Layout</button>
-<button class="btn btn-ghost" id="btnResetLayout" type="button">Reset Layout</button>
-
-<button id="btnClear" class="btn danger" type="button">Reset</button>
+          <button id="btnClear" class="btn danger" type="button">Reset</button>
         </div>
 
         <div id="tStatus" class="status idle" style="margin-top:12px;">Masukkan judul, lalu klik Generate Output.</div>
@@ -77,7 +73,7 @@
         <div class="two">
           <div class="field">
             <label>Anchor Text (1 per baris)</label>
-            <textarea id="outAnchor" placeholder="Hasil anchor text" class="user-resizable" data-size-key="anchor_out_anchor"></textarea>
+            <textarea id="outAnchor" placeholder="Hasil anchor text"></textarea>
             <div class="actions" style="margin-top:8px;">
               <button class="btn" id="copyAnchor" type="button">Copy Anchor</button>
             </div>
@@ -85,7 +81,7 @@
 
           <div class="field">
             <label>Link (1 per baris)</label>
-            <textarea id="outLinks" placeholder="Hasil link dari href" class="user-resizable" data-size-key="anchor_out_links"></textarea>
+            <textarea id="outLinks" placeholder="Hasil link dari href"></textarea>
             <div class="actions" style="margin-top:8px;">
               <button class="btn" id="copyLinks" type="button">Copy Link</button>
             </div>
