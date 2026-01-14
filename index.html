@@ -149,8 +149,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
       <section class="card status-card">
         <div class="card-head">
@@ -158,18 +156,47 @@
           <span class="pill">Validasi</span>
         </div>
 
-        <div id="status" class="status idle">Belum ada proses.</div>
+          <div class="toggle">
+            <input id="chkStrict" type="checkbox" checked />
+            <label for="chkStrict">
+              <div class="t-title">Strict integrity check</div>
+              <div class="t-sub">Gagal jika ada perubahan selain placeholder.</div>
+            </label>
+          </div>
 
-        <div class="report" id="report"></div>
+          <div class="toggle">
+            <input id="chkNameFromLink" type="checkbox" checked />
+            <label for="chkNameFromLink">
+              <div class="t-title">Nama file dari LINK</div>
+              <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
+            </label>
+          </div>
 
-        <details class="tips">
-          <summary>Tips cepat</summary>
-          <ul>
-            <li>Kalau placeholder Anda terlalu umum (mis. <code>*LINK*</code>) dan sering bentrok, gunakan format unik seperti <code>{{LINK}}</code>.</li>
-            <li>Jika link tidak valid, nama file fallback menjadi <code>artikel.html</code>.</li>
-            <li>Preview hanya menampilkan file pertama untuk cek cepat.</li>
-          </ul>
-        </details>
+          <div class="toggle">
+            <input id="chkAutoRefresh" type="checkbox" checked />
+            <label for="chkAutoRefresh">
+              <div class="t-title">Auto refresh setelah download</div>
+              <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
+            </label>
+          </div>
+          <div class="card-head">
+            <h2>3) Status</h2>
+            <span class="pill">Validasi</span>
+          </div>
+
+          <div id="status" class="status idle">Belum ada proses.</div>
+
+          <div class="report" id="report"></div>
+
+          <details class="tips">
+            <summary>Tips cepat</summary>
+            <ul>
+              <li>Kalau placeholder Anda terlalu umum (mis. <code>*LINK*</code>) dan sering bentrok, gunakan format unik seperti <code>{{LINK}}</code>.</li>
+              <li>Jika link tidak valid, nama file fallback menjadi <code>artikel.html</code>.</li>
+              <li>Preview hanya menampilkan file pertama untuk cek cepat.</li>
+            </ul>
+          </details>
+        </div>
       </section>
     </main>
 
