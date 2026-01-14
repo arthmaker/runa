@@ -21,7 +21,6 @@ function setStatus(type, msg){
       $("images").value = String(imgs).trim();
       localStorage.removeItem("runa_autofill_images");
       localStorage.removeItem("runa_autofill_from");
-      setStatus("ok", "Auto-fill: daftar link gambar sudah dimasukkan dari Tools Link Gambar.");
       // Fokus ke textarea gambar agar cepat lanjut kerja
       $("images").scrollIntoView({behavior:"smooth", block:"center"});
       $("images").focus();

@@ -439,3 +439,12 @@ textarea { min-height: 100px !important; }
 
 /* Remove any accidental spacers */
 .spacer, .divider, .gap { display: none !important; }
+
+
+
+/* === HARD REMOVE IMAGE TOOLS FROM GENERATOR === */
+body.generator .image-tools,
+body.generator .img-tools,
+body.generator [data-tool="image"] {
+  display: none !important;
+}
