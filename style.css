@@ -74,6 +74,14 @@ body{
   backdrop-filter: blur(10px);
 }
 
+.card.full{ grid-column: 1 / -1; }
+.data-card{ grid-row: span 2; }
+.spacer-card{ min-height: 360px; }
+
+@media (max-width: 980px){
+  .data-card{ grid-row: auto; }
+  .spacer-card{ min-height: 240px; }
+}
 
 .card-head{
   display:flex; align-items:center; justify-content:space-between;
