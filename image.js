@@ -1,4 +1,3 @@
-(function(){
 const $ = (id) => document.getElementById(id);
 
 function setStatus(type, msg){
@@ -65,18 +64,6 @@ function generate(){
     out.push(`${domain}${base}${i}${ext}`);
   }
   $("out").value = out.join("\n");
-
-  // Auto-fill ke Generator (index.html) + redirect 2 detik
-  try{
-    localStorage.setItem("runa_autofill_images", $("out").value || "");
-    localStorage.setItem("runa_autofill_from", "image-tool");
-    setStatus("ok", "Sukses: 10 link dibuat. Mengalihkan ke Generator dalam 2 detik...");
-    setTimeout(()=>{ window.location.href = "./index.html"; }, 2000);
-    return;
-  }catch(e){
-    // fallback: jika localStorage gagal, tetap tampilkan output biasa
-  }
-
   setStatus("ok", "Sukses: 10 link dibuat. Klik Copy Hasil.");
 }
 
@@ -100,5 +87,3 @@ $("btnCopy").addEventListener("click", async ()=>{
 
 loadSaved();
 setStatus("idle", "Isi 3 box → klik Generate.");
-
-})();

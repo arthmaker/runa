@@ -11,23 +11,6 @@ function setStatus(type, msg){
   el.className = `status ${type}`;
   el.textContent = msg;
 }
-
-
-// ---------- Auto-fill dari Tools Link Gambar ----------
-(function applyAutofill(){
-  try{
-    const imgs = localStorage.getItem("runa_autofill_images");
-    if(imgs && $("images")){
-      $("images").value = String(imgs).trim();
-      localStorage.removeItem("runa_autofill_images");
-      localStorage.removeItem("runa_autofill_from");
-      // Fokus ke textarea gambar agar cepat lanjut kerja
-      $("images").scrollIntoView({behavior:"smooth", block:"center"});
-      $("images").focus();
-    }
-  }catch(e){ /* ignore */ }
-})();
-
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, (m)=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
