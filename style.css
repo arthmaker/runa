@@ -448,3 +448,34 @@ body.generator .img-tools,
 body.generator [data-tool="image"] {
   display: none !important;
 }
+
+
+
+/* === WIDE + DENSE LAYOUT PATCH (auto-added) === */
+
+/* Make content use more screen width (Chrome 100% / 1920x1080) */
+.container, .wrap, .shell, main {
+  width: min(1500px, 96vw) !important;
+  max-width: min(1500px, 96vw) !important;
+}
+
+/* Generator main grid: allocate more space to the right column */
+.grid {
+  grid-template-columns: 1fr 1.15fr !important;
+}
+
+/* Reduce large empty gaps vertically */
+.card { margin-bottom: 10px !important; }
+.grid { margin-top: 10px !important; }
+.card-head { margin-bottom: 8px !important; }
+
+/* Inputs: slightly smaller height for title/link/image boxes */
+#titles, #links, #images {
+  min-height: 90px !important;
+}
+
+/* Article stays comfy but not too tall */
+#articles { min-height: 150px !important; }
+
+/* Anchor page: make sections closer */
+.image-tools, .img-tools { margin-top: 10px !important; padding-top: 10px !important; }
