@@ -416,3 +416,26 @@ section.card.full{ display:none !important; }
 
 /* Tools Link Gambar block: compact */
 .image-tools, .img-tools{ margin-top: 12px; padding-top: 10px; }
+
+
+
+/* === FINAL CLEANUP OVERRIDES === */
+
+/* Generator: hide image-link navigation/button completely */
+.nav a[href*="image"], 
+.nav button[data-tool="image"],
+#btnImageTools {
+  display: none !important;
+}
+
+/* Generator: tighten vertical rhythm further */
+.grid { gap: 10px !important; }
+.card { padding: 10px 12px !important; }
+.side { margin-top: 6px !important; gap: 8px !important; }
+
+/* Reduce perceived empty space */
+textarea { min-height: 100px !important; }
+#articles { min-height: 160px !important; }
+
+/* Remove any accidental spacers */
+.spacer, .divider, .gap { display: none !important; }
