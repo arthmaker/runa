@@ -74,6 +74,11 @@ body{
   backdrop-filter: blur(10px);
 }
 
+.status-card{
+  padding: 20px;
+}
+
+
 .card-head{
   display:flex; align-items:center; justify-content:space-between;
   gap:10px; margin-bottom: 12px;
@@ -188,16 +193,6 @@ input:focus, textarea:focus{
   flex-wrap:wrap;
   justify-content:center;
   width: 100%;
-}
-
-.toggle-row{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
-  gap: 12px;
-}
-
-@media (max-width: 980px){
-  .toggle-row{ grid-template-columns: 1fr; }
 }
 .btn{
   border: 0;
