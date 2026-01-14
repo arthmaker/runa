@@ -96,18 +96,19 @@
             <div class="help">Upload <code>artikel.txt</code> berisi banyak blok artikel. Mapping berdasarkan urutan (blok #1 untuk judul baris #1, dst).</div>
           </div>
 
-          <div class="side">
-            <div class="field">
-              <label>Upload Gambar (opsional)</label>
-              <input id="imageFiles" type="file" accept="image/*" multiple />
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload template">
+          <div class="field">
+            <label>Upload Gambar (opsional)</label>
+            <input id="imageFiles" type="file" accept="image/*" multiple />
               <div class="dz-inner">
-                <div class="dz-icn" aria-hidden="true">⬆</div>
-                <div>
-                  <div class="dz-title">Drag & drop gambar di sini</div>
-                  <div class="dz-sub">atau klik untuk memilih file</div>
-                </div>
+              <div class="dz-icn" aria-hidden="true">⬆</div>
+              <div>
+                <div class="dz-title">Drag & drop Gambar di sini</div>
+                <div class="dz-sub">atau klik untuk memilih file <span class="kbd">.webp</span></div>
               </div>
             </div>
+          </div>
+        </div>
 
             <div class="zip-row">
               <div class="field">
@@ -151,34 +152,6 @@
           </div>
 
       <section class="card status-card">
-        <div class="card-head">
-          <h2>3) Status</h2>
-          <span class="pill">Validasi</span>
-        </div>
-
-          <div class="toggle">
-            <input id="chkStrict" type="checkbox" checked />
-            <label for="chkStrict">
-              <div class="t-title">Strict integrity check</div>
-              <div class="t-sub">Gagal jika ada perubahan selain placeholder.</div>
-            </label>
-          </div>
-
-          <div class="toggle">
-            <input id="chkNameFromLink" type="checkbox" checked />
-            <label for="chkNameFromLink">
-              <div class="t-title">Nama file dari LINK</div>
-              <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
-            </label>
-          </div>
-
-          <div class="toggle">
-            <input id="chkAutoRefresh" type="checkbox" checked />
-            <label for="chkAutoRefresh">
-              <div class="t-title">Auto refresh setelah download</div>
-              <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
-            </label>
-          </div>
           <div class="card-head">
             <h2>3) Status</h2>
             <span class="pill">Validasi</span>
