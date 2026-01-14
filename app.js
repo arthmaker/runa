@@ -11,6 +11,23 @@ function setStatus(type, msg){
   el.className = `status ${type}`;
   el.textContent = msg;
 }
+
+
+// ---------- Auto-fill dari Tools Link Gambar ----------
+(function applyAutofill(){
+  try{
+    const imgs = localStorage.getItem("runa_autofill_images");
+    if(imgs && $("images")){
+      $("images").value = String(imgs).trim();
+      localStorage.removeItem("runa_autofill_images");
+      localStorage.removeItem("runa_autofill_from");
+      // Fokus ke textarea gambar agar cepat lanjut kerja
+      $("images").scrollIntoView({behavior:"smooth", block:"center"});
+      $("images").focus();
+    }
+  }catch(e){ /* ignore */ }
+})();
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, (m)=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -400,3 +417,152 @@ setStatus("idle", "Upload template untuk memulai.");
 report([
   {k:"Catatan", v:"Gunakan placeholder unik agar aman (mis. <code>{{JUDUL}}</code>, <code>{{LINK}}</code>, <code>{{GAMBAR}}</code>, <code>{{ARTIKEL}}</code>)."}
 ]);
+
+
+
+// === Layout resize + save (localStorage) ===
+function _lsKeyFor(el){
+  const page = location.pathname.split("/").pop() || "index.html";
+  const k = el.getAttribute("data-size-key") || el.id || el.className || "el";
+  return `runa:layout:${page}:${k}`;
+}
+
+function _applySavedSize(el){
+  try{
+    const raw = localStorage.getItem(_lsKeyFor(el));
+    if(!raw) return;
+    const {w,h} = JSON.parse(raw);
+    if(w) el.style.width = w + "px";
+    if(h) el.style.height = h + "px";
+  }catch(e){}
+}
+
+function _saveSize(el){
+  try{
+    const rect = el.getBoundingClientRect();
+    const payload = { w: Math.round(rect.width), h: Math.round(rect.height) };
+    localStorage.setItem(_lsKeyFor(el), JSON.stringify(payload));
+  }catch(e){}
+}
+
+function initLayoutPersistence(){
+  const els = Array.from(document.querySelectorAll("[data-size-key]"));
+  if(!els.length) return;
+
+  // apply saved sizes
+  els.forEach(_applySavedSize);
+
+  // observe resizes and save (debounced)
+  const timers = new Map();
+  const ro = new ResizeObserver(entries => {
+    for (const entry of entries){
+      const el = entry.target;
+      clearTimeout(timers.get(el));
+      timers.set(el, setTimeout(()=>_saveSize(el), 250));
+    }
+  });
+  els.forEach(el => ro.observe(el));
+
+  // buttons
+  const btnSave = document.getElementById("btnSaveLayout");
+  if(btnSave){
+    btnSave.addEventListener("click", ()=>{
+      els.forEach(_saveSize);
+      toast && toast("Layout disimpan.");
+    });
+  }
+  const btnReset = document.getElementById("btnResetLayout");
+  if(btnReset){
+    btnReset.addEventListener("click", ()=>{
+      els.forEach(el => localStorage.removeItem(_lsKeyFor(el)));
+      location.reload();
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initLayoutPersistence);
+
+
+
+// === ADAPTIVE ANCHOR (HYBRID + ANTI DUPLICATE) ===
+const STRONG_TOPIC = new Set([
+  "reset","server","thailand","vietnam","strategi","psikologi","dinamika","transisi",
+  "pergeseran","penentu","arah","mengubah","membentuk","ulang","pasca","babak","baru"
+]);
+
+function uniq(arr){ return [...new Set(arr)]; }
+
+function pickTitleTokens(titleTokens){
+  const strong = [];
+  const other = [];
+  for(const t of titleTokens){
+    if(t.length < 3) continue;
+    if(STOPWORDS_ID.has(t)) continue;
+    if(STRONG_TOPIC.has(t)) strong.push(t);
+    else other.push(t);
+  }
+  return { strong: uniq(strong), other: uniq(other) };
+}
+
+function extractAdaptiveKeywords(title, minWords=2, maxWords=4, prevOut="") {
+  const titleTokens = tokenize(title);
+  const titleSet = new Set(titleTokens);
+
+  const out = [];
+
+  // Brand priority
+  if(titleSet.has("mahjongways")) out.push("mahjongways");
+
+  // Topic tokens from title
+  const parts = pickTitleTokens(titleTokens);
+  const strong = parts.strong, other = parts.other;
+
+  if(titleSet.has("reset") && titleSet.has("server")){
+    if(!out.includes("reset")) out.push("reset");
+    if(out.length < maxWords && !out.includes("server")) out.push("server");
+  } else {
+    for(const t of strong){
+      if(out.length >= maxWords) break;
+      if(!out.includes(t)) out.push(t);
+      if(out.length >= 3) break;
+    }
+  }
+
+  // Intent tokens
+  const intentOrder = ["kasino","online","live","rtp"];
+  for(const it of intentOrder){
+    if(out.length >= maxWords) break;
+    if(titleSet.has(it) || it === "kasino" || it === "online"){
+      if(!out.includes(it)) out.push(it);
+    }
+  }
+
+  // Ensure minimum length
+  if(out.length < minWords){
+    for(const t of [...strong, ...other]){
+      if(out.length >= minWords) break;
+      if(!out.includes(t)) out.push(t);
+    }
+  }
+
+  let final = out.slice(0, maxWords);
+  let finalStr = final.join(" ");
+
+  // Anti-duplicate
+  if(prevOut && finalStr === prevOut){
+    for(const alt of [...strong, ...other]){
+      if(!final.includes(alt)){
+        final[final.length-1] = alt;
+        break;
+      }
+    }
+  }
+
+  // Brand first
+  if(final.includes("mahjongways")){
+    const rest = final.filter(x => x !== "mahjongways");
+    final = ["mahjongways", ...rest];
+  }
+
+  return final.slice(0, maxWords);
+}

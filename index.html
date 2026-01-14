@@ -9,7 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 </head>
-<body>
+<body class="generator">
   <div class="bg-glow"></div>
 
   <div class="container">
@@ -24,14 +24,18 @@
 
       <div class="top-actions">
         <a class="btn ghost" href="./anchor.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">Tools Anchor &amp; Link</a>
-        <a class="btn ghost" href="./image.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">Tools Link Gambar</a>
+        
         <button id="btnLoadSample" class="btn ghost" type="button">Isi Contoh</button>
-        <button id="btnReset" class="btn danger" type="button">Reset</button>
+        
+<button class="btn btn-ghost" id="btnSaveLayout" type="button">Save Layout</button>
+<button class="btn btn-ghost" id="btnResetLayout" type="button">Reset Layout</button>
+
+<button id="btnReset" class="btn danger" type="button">Reset</button>
       </div>
     </header>
 
     <main class="grid">
-      <section class="card">
+      <section class="card resizable-v" data-size-key="gen_template_card">
         <div class="card-head">
           <h2>1) Template</h2>
           <span class="pill">Fleksibel</span>
@@ -86,18 +90,18 @@
         <div class="two">
           <div class="field">
             <label>JUDUL</label>
-            <textarea id="titles" placeholder="1 judul per baris"></textarea>
+            <textarea id="titles" placeholder="1 judul per baris" class="user-resizable" data-size-key="gen_titles"></textarea>
           </div>
           <div class="field">
             <label>LINK</label>
-            <textarea id="links" placeholder="1 link per baris"></textarea>
+            <textarea id="links" placeholder="1 link per baris" class="user-resizable" data-size-key="gen_links"></textarea>
           </div>
         </div>
 
         <div class="two">
           <div class="field">
             <label>GAMBAR</label>
-            <textarea id="images" placeholder="1 gambar per baris"></textarea>
+            <textarea id="images" placeholder="1 gambar per baris" class="user-resizable" data-size-key="gen_images"></textarea>
           </div>
 
           <div class="field">
@@ -109,12 +113,23 @@
               <code>&lt;p&gt;Isi artikel...&lt;/p&gt;</code><br>
               <code>-$$$-</code>
             </div>
-            <textarea id="articles" placeholder="Tempel artikel di sini (pakai marker -###- dan -$$$-) atau upload file di bawah"></textarea>
+            <textarea id="articles" placeholder="Tempel artikel di sini (pakai marker -###- dan -$$$-) atau upload file di bawah" class="user-resizable" data-size-key="gen_articles"></textarea>
             <input id="articleFile" type="file" accept=".txt,.md,.html,.htm,text/plain,text/markdown,text/html" />
             <div class="help">Upload <code>artikel.txt</code> berisi banyak blok artikel. Mapping berdasarkan urutan (blok #1 untuk judul baris #1, dst).</div>
           </div>
 
-          <div class="side">
+          
+<!-- SIDE_MOVED_TO_BOTTOM -->
+
+        </div>
+      </section>
+
+      <section class="card full">
+        <div class="card-head">
+          <h2>
+<section class="card controls-full" id="controlsFull">
+  <div class="card-head"><h2>3) Actions</h2><span class="pill">Padat</span></div>
+  <div class="side">
             <div class="field">
               <label>Nama ZIP</label>
               <input id="zipName" value="artikel-output.zip" />
@@ -158,12 +173,9 @@
               </label>
             </div>
           </div>
-        </div>
-      </section>
+</section>
 
-      <section class="card full">
-        <div class="card-head">
-          <h2>3) Status</h2>
+3) Status</h2>
           <span class="pill">Validasi</span>
         </div>
 
