@@ -63,7 +63,6 @@ body{
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-top: 16px;
-  align-items: start; /* prevent cards stretching to tallest neighbor */
 }
 @media (max-width: 980px){
   .grid{ grid-template-columns:1fr; }
@@ -76,14 +75,7 @@ body{
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   backdrop-filter: blur(10px);
-  align-self: start; /* keep compact height */
 }
-
-/* Small utility classes used inline in HTML */
-.row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.muted{ color: var(--muted); font-size: 13px; line-height: 1.5; }
-.hint{ color: var(--muted); font-size: 12px; line-height: 1.4; }
-.btns{ display:flex; gap:10px; flex-wrap:wrap; }
 
 .card.full{ grid-column: 1 / -1; }
 
