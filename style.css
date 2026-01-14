@@ -280,3 +280,82 @@ input:focus, textarea:focus{
   background: white;
   margin: 12px;
 }
+
+
+/* === COMPACT LAYOUT OVERRIDES (auto-added) === */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.card {
+  padding: 12px 14px;
+}
+
+.section {
+  margin-bottom: 12px;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.output textarea {
+  min-height: 90px;
+}
+
+.output-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.copy-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.image-tools {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+/* Optional quick compact mode */
+body.compact textarea {
+  min-height: 70px;
+}
+
+
+
+/* === EXTRA COMPACT OVERRIDES for Generator page === */
+.grid{
+  gap: 12px;
+  margin-top: 12px;
+}
+.two{
+  gap: 10px;
+}
+.three{
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Make generator inputs more compact, keep articles comfortable */
+#titles, #links, #images{
+  min-height: 110px;
+}
+#articles{
+  min-height: 170px; /* long content */
+}
+
+/* Tighten field spacing */
+.field{ margin-top: 8px; }
+.field label{ margin-bottom: 6px; }
+.hint{ margin-top: 6px; }
+
+/* Buttons closer */
+.btns{ gap: 8px; margin-top: 10px; }
