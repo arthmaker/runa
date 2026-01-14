@@ -9,7 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 </head>
-<body>
+<body class="generator">
   <div class="bg-glow"></div>
 
   <div class="container">
@@ -114,7 +114,18 @@
             <div class="help">Upload <code>artikel.txt</code> berisi banyak blok artikel. Mapping berdasarkan urutan (blok #1 untuk judul baris #1, dst).</div>
           </div>
 
-          <div class="side">
+          
+<!-- SIDE_MOVED_TO_BOTTOM -->
+
+        </div>
+      </section>
+
+      <section class="card full">
+        <div class="card-head">
+          <h2>
+<section class="card controls-full" id="controlsFull">
+  <div class="card-head"><h2>3) Actions</h2><span class="pill">Padat</span></div>
+  <div class="side">
             <div class="field">
               <label>Nama ZIP</label>
               <input id="zipName" value="artikel-output.zip" />
@@ -158,12 +169,9 @@
               </label>
             </div>
           </div>
-        </div>
-      </section>
+</section>
 
-      <section class="card full">
-        <div class="card-head">
-          <h2>3) Status</h2>
+3) Status</h2>
           <span class="pill">Validasi</span>
         </div>
 

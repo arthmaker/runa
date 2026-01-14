@@ -479,3 +479,17 @@ body.generator [data-tool="image"] {
 
 /* Anchor page: make sections closer */
 .image-tools, .img-tools { margin-top: 10px !important; padding-top: 10px !important; }
+
+
+
+/* === FIX EMPTY SPACE: move right-side actions into full-width row === */
+.generator .controls-full{ grid-column: 1 / -1; }
+.generator .controls-full .side{ max-width:none !important; width:100% !important; }
+.generator .controls-full .field{ margin-bottom: 10px; }
+.generator .grid{ align-items:start; }
+
+
+
+/* === ANCHOR EMPTY SPACE FIX === */
+.anchor .grid{ align-items:start; }
+.anchor textarea{ min-height: 110px; }
