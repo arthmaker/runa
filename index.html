@@ -47,6 +47,7 @@
             </div>
           </div>
         </div>
+        <div class="help">Template: <span id="tplMeta">Belum dimuat</span></div>
 
         <div class="three">
           <div class="field">
@@ -64,13 +65,7 @@
           <div class="field">
             <label>Placeholder Artikel</label>
             <input id="phArticle" value="*ARTIKEL*" />
-            <div class="help">Untuk konten panjang. Contoh: <code>{{ARTIKEL}}</code></div>
           </div>
-        </div>
-
-        <div class="mini">
-          <div class="mini-k">Template:</div>
-          <div class="mini-v" id="tplMeta">Belum dimuat</div>
         </div>
       </section>
 
@@ -96,13 +91,6 @@
 
           <div class="field">
             <label>ARTIKEL (blok panjang)</label>
-            <div class="help">
-              Format blok: baris pembuka <code>-###-</code>, isi artikel, lalu baris penutup <code>-$$$-</code>.
-              Contoh:<br>
-              <code>-###-</code><br>
-              <code>&lt;p&gt;Isi artikel...&lt;/p&gt;</code><br>
-              <code>-$$$-</code>
-            </div>
             <textarea id="articles" placeholder="Tempel artikel di sini (pakai marker -###- dan -$$$-) atau upload file di bawah"></textarea>
             <input id="articleFile" type="file" accept=".txt,.md,.html,.htm,text/plain,text/markdown,text/html" />
             <div class="help">Upload <code>artikel.txt</code> berisi banyak blok artikel. Mapping berdasarkan urutan (blok #1 untuk judul baris #1, dst).</div>
@@ -112,8 +100,12 @@
             <div class="field">
               <label>Upload Gambar (opsional)</label>
               <input id="imageFiles" type="file" accept="image/*" multiple />
-              <div class="help">
-                Jika di-upload, file gambar akan dimasukkan ke ZIP dan <strong>di-rename</strong> mengikuti daftar <em>GAMBAR</em> (nama file diambil dari URL). Urutan gambar mengikuti urutan baris.
+              <div class="dz-inner">
+                <div class="dz-icn" aria-hidden="true">⬆</div>
+                <div>
+                  <div class="dz-title">Drag & drop gambar di sini</div>
+                  <div class="dz-sub">atau klik untuk memilih file</div>
+                </div>
               </div>
             </div>
 
@@ -125,6 +117,7 @@
               </div>
               <button id="btnGenerate" class="btn primary" type="button">Generate & Download ZIP</button>
             </div>
+          </div>
 
             <div class="actions">
               <button id="btnPreview" class="btn" type="button">Preview 1 File</button>
