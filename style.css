@@ -109,6 +109,14 @@ body{
   opacity:0; width:100%; height:100%;
   cursor:pointer;
 }
+.dropzone input[type="file"]{
+  appearance: none;
+  -webkit-appearance: none;
+}
+.dropzone input[type="file"]::file-selector-button,
+.dropzone input[type="file"]::-webkit-file-upload-button{
+  visibility: hidden;
+}
 .dz-inner{ display:flex; gap:12px; align-items:center; }
 .dz-icn{
   width:44px; height:44px; border-radius:14px;
