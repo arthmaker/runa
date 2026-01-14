@@ -14,13 +14,13 @@
       <div class="brand">
         <div class="logo" aria-hidden="true">◎</div>
         <div>
-          <div class="title">RUNA</div>
-          <div class="sub">Tools • Link Gambar</div>
+          <h1>Tools Link Gambar</h1>
+          <p>Buat 10 link gambar berurutan dari 3 box input. Nilai input tersimpan otomatis.</p>
         </div>
       </div>
-      <div class="nav">
-        <a class="btn ghost" href="./anchor.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">← Tools Anchor &amp; Link</a>
-        <a class="btn ghost" href="./index.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">Kembali ke Generator →</a>
+
+      <div class="top-actions">
+        <a class="btn ghost" href="./index.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;">← Kembali ke Generator</a>
       </div>
     </header>
 
@@ -28,34 +28,33 @@
       <section class="card">
         <div class="card-head">
           <h2>1) Input</h2>
-          <span class="pill">Gambar</span>
+          <span class="pill">3 Box</span>
         </div>
 
         <div class="three">
           <div class="field">
-            <label>Box 1 • Domain / Folder</label>
+            <label>Box 1: Domain / Folder</label>
             <input id="imgDomain" placeholder="https://gomoonchild.github.io/berita/" />
-            <div class="help">Pastikan diakhiri <code>/</code> (akan otomatis dibenarkan).</div>
+            <div class="help">Pastikan diakhiri <code>/</code> (folder).</div>
           </div>
           <div class="field">
-            <label>Box 2 • Nama file (tanpa angka)</label>
+            <label>Box 2: Nama File (tanpa nomor)</label>
             <input id="imgBaseName" placeholder="mahjongways-gameko" />
-            <div class="help">Contoh: <code>mahjongways-gameko</code></div>
+            <div class="help">Nomor 1–10 akan ditambahkan otomatis.</div>
           </div>
           <div class="field">
-            <label>Box 3 • Format</label>
-            <input id="imgExt" placeholder=".webp" value=".webp" />
-            <div class="help">Contoh: <code>.webp</code> / <code>.jpg</code> / <code>.png</code></div>
+            <label>Box 3: Format</label>
+            <input id="imgExt" placeholder=".webp" />
+            <div class="help">Contoh: <code>.webp</code>, <code>.jpg</code>, <code>.png</code></div>
           </div>
         </div>
 
         <div class="actions">
-          <button id="btnSave" class="btn" type="button">Save Input</button>
           <button id="btnGenerate" class="btn primary" type="button">Generate 10 Link</button>
           <button id="btnReset" class="btn danger" type="button">Reset</button>
         </div>
 
-        <div id="sStatus" class="status idle" style="margin-top:12px;">Isi 3 box, klik Save (opsional), lalu Generate.</div>
+        <div id="imgStatus" class="status idle" style="margin-top:12px;">Isi 3 box → klik Generate.</div>
       </section>
 
       <section class="card">
@@ -65,18 +64,17 @@
         </div>
 
         <div class="field">
-          <label>Daftar Link Gambar</label>
-          <textarea id="outImages" placeholder="Hasil 10 link akan muncul di sini"></textarea>
-          <div class="actions" style="justify-content:flex-end;">
-            <button id="btnCopy" class="btn ghost" type="button">Copy Hasil</button>
+          <label>Hasil Link Gambar (10 baris)</label>
+          <textarea id="out" placeholder="Hasil akan muncul di sini"></textarea>
+          <div class="actions" style="margin-top:8px;">
+            <button class="btn" id="btnCopy" type="button">Copy Hasil</button>
           </div>
-          <div class="help">Format: <code>domain + baseName + 1..10 + ext</code></div>
         </div>
       </section>
     </main>
 
     <footer class="footer">
-      <div>RUNA • Client-side generator</div>
+      <span>Disimpan lokal via localStorage • 100% di browser</span>
     </footer>
   </div>
 

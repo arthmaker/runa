@@ -1,23 +1,15 @@
 const $ = (id) => document.getElementById(id);
 
-const LS_KEYS = {
-  domain: "runa_img_domain",
-  base: "runa_img_base",
-  ext: "runa_img_ext",
-};
-
 function setStatus(type, msg){
-  const el = $("sStatus");
+  const el = $("imgStatus");
   el.className = `status ${type}`;
   el.textContent = msg;
 }
 
-function normDomain(d){
-  let s = String(d || "").trim();
-  if(!s) return "";
-  if(!/https?:\/\//i.test(s)) s = "https://" + s;
-  if(!s.endsWith("/")) s += "/";
-  return s;
+function ensureTrailingSlash(url){
+  const u = String(url || "").trim();
+  if(!u) return "";
+  return u.endsWith("/") ? u : u + "/";
 }
 
 function copyText(el){
@@ -31,71 +23,67 @@ function copyText(el){
   return Promise.resolve();
 }
 
+// ---------- Persist inputs (auto-save) ----------
+const KEY_DOMAIN = "runa_img_domain";
+const KEY_BASE = "runa_img_base";
+const KEY_EXT = "runa_img_ext";
+
 function loadSaved(){
-  const d = localStorage.getItem(LS_KEYS.domain) || "";
-  const b = localStorage.getItem(LS_KEYS.base) || "";
-  const e = localStorage.getItem(LS_KEYS.ext) || ".webp";
-  $("imgDomain").value = d;
-  $("imgBaseName").value = b;
-  $("imgExt").value = e;
+  const d = localStorage.getItem(KEY_DOMAIN);
+  const b = localStorage.getItem(KEY_BASE);
+  const e = localStorage.getItem(KEY_EXT);
+  if(d) $("imgDomain").value = d;
+  if(b) $("imgBaseName").value = b;
+  if(e) $("imgExt").value = e;
 }
 
-function saveInputs(){
-  const d = normDomain($("imgDomain").value);
-  const b = $("imgBaseName").value.trim();
-  const e = $("imgExt").value.trim() || ".webp";
+function saveNow(){
+  localStorage.setItem(KEY_DOMAIN, $("imgDomain").value || "");
+  localStorage.setItem(KEY_BASE, $("imgBaseName").value || "");
+  localStorage.setItem(KEY_EXT, $("imgExt").value || "");
+}
 
-  if(!d || !b){
-    setStatus("bad", "ERROR: Domain dan nama file wajib diisi sebelum save.");
+for(const id of ["imgDomain","imgBaseName","imgExt"]){
+  $(id).addEventListener("input", saveNow);
+}
+
+function generate(){
+  const domain = ensureTrailingSlash($("imgDomain").value);
+  const base = String($("imgBaseName").value || "").trim();
+  const ext = String($("imgExt").value || "").trim();
+
+  if(!domain || !base || !ext){
+    setStatus("bad", "ERROR: Semua box wajib diisi (domain, nama file, format)." );
     return;
   }
 
-  localStorage.setItem(LS_KEYS.domain, d);
-  localStorage.setItem(LS_KEYS.base, b);
-  localStorage.setItem(LS_KEYS.ext, e);
-  $("imgDomain").value = d;
-  $("imgExt").value = e;
-  setStatus("ok", "Input tersimpan (localStorage).");
-}
-
-function generate10(){
-  const d = normDomain($("imgDomain").value);
-  const b = $("imgBaseName").value.trim();
-  const e = $("imgExt").value.trim() || ".webp";
-
-  if(!d || !b){
-    setStatus("bad", "ERROR: Domain dan nama file wajib diisi.");
-    return;
-  }
+  saveNow();
 
   const out = [];
-  for(let i=1;i<=10;i++){
-    out.push(`${d}${b}${i}${e}`);
+  for(let i=1; i<=10; i++){
+    out.push(`${domain}${base}${i}${ext}`);
   }
-  $("outImages").value = out.join("\n");
-  setStatus("ok", "Sukses: 10 link gambar dibuat.");
+  $("out").value = out.join("\n");
+  setStatus("ok", "Sukses: 10 link dibuat. Klik Copy Hasil.");
 }
 
-function resetAll(){
+$("btnGenerate").addEventListener("click", generate);
+
+$("btnReset").addEventListener("click", ()=>{
   $("imgDomain").value = "";
   $("imgBaseName").value = "";
-  $("imgExt").value = ".webp";
-  $("outImages").value = "";
+  $("imgExt").value = "";
+  $("out").value = "";
+  localStorage.removeItem(KEY_DOMAIN);
+  localStorage.removeItem(KEY_BASE);
+  localStorage.removeItem(KEY_EXT);
   setStatus("idle", "Reset selesai.");
-}
+});
 
-$("btnSave").addEventListener("click", saveInputs);
-$("btnGenerate").addEventListener("click", generate10);
-$("btnReset").addEventListener("click", resetAll);
 $("btnCopy").addEventListener("click", async ()=>{
-  if(!($("outImages").value || "").trim()){
-    setStatus("bad", "ERROR: Output masih kosong.");
-    return;
-  }
-  await copyText($("outImages"));
+  await copyText($("out"));
   setStatus("ok", "Hasil dicopy.");
 });
 
-// init
 loadSaved();
-setStatus("idle", "Isi 3 box, klik Save (opsional), lalu Generate.");
+setStatus("idle", "Isi 3 box → klik Generate.");

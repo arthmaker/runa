@@ -13,86 +13,48 @@ function lines(text){
     .filter(Boolean);
 }
 
-// Very small Indonesian stopword set (lightweight; deterministic)
-const STOPWORDS = new Set([
-  "yang","dan","di","ke","dari","pada","untuk","dengan","atau","ini","itu","sebagai",
-  "dalam","oleh","jadi","agar","karena","saat","ketika","lebih","baru","mulai","akan",
-  "para","bagi","jadi","pun","nya","sebuah","dapat","juga","tanpa","hingga","tahun",
-  "awal","cara","pemain","kasino","online","memaknai"
-]);
-
-function normalizeSpaces(s){
-  return String(s || "").replace(/\s+/g, " ").trim();
-}
-
-function slugify(input){
-  const s = normalizeSpaces(input).toLowerCase();
-  // replace non alnum with space, then collapse to hyphen
-  const cleaned = s
+// ---------- Slug (limit 50 + tolerance +12: only to avoid cutting last word) ----------
+function slugify(s) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\bmahjongw\s+ays\b/g, "mahjongways")
+    .replace(/&/g, " dan ")
     .replace(/[^a-z0-9\s-]/g, " ")
     .replace(/\s+/g, " ")
-    .trim();
-  return cleaned
-    .replace(/\s+/g, "-")
+    .trim()
+    .replace(/\s/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
 
-function slugFromTitle(title, maxChars){
-  const t = String(title || "");
-  const cut = t.slice(0, Math.max(1, maxChars || 50));
-  return slugify(cut) || "artikel";
+function smartSlug(title, limit = 50, tolerance = 12) {
+  const full = slugify(title);
+  if (!full) return "artikel";
+  if (full.length <= limit) return full;
+
+  // cut on word boundary (dash)
+  let cut = full.lastIndexOf("-", limit);
+  if (cut < 15) cut = limit; // if no dash or too short, fallback
+
+  // extend only if next dash is within tolerance (finish last word)
+  const nextDash = full.indexOf("-", limit);
+  if (nextDash !== -1 && nextDash - limit <= tolerance) {
+    cut = nextDash;
+  }
+
+  const out = full.slice(0, cut).replace(/-+$/g, "");
+  return out || full.slice(0, limit);
 }
 
 function joinUrl(base, path){
-  const b = (base || "").trim();
-  if(!b) return path;
-  if(b.endsWith("/") && path.startsWith("/")) return b + path.slice(1);
-  if(!b.endsWith("/") && !path.startsWith("/")) return b + "/" + path;
-  return b + path;
-}
-
-// Pick 3 "important" keywords (deterministic heuristic)
-function pickKeywords(title, k=3){
-  const raw = normalizeSpaces(title).toLowerCase();
-  const words = raw
-    .split(" ")
-    .map(w => w.replace(/[^a-z0-9]/g, ""))
-    .filter(w => w.length >= 3);
-
-  const seen = new Set();
-  const candidates = [];
-
-  for(const w of words){
-    if(seen.has(w)) continue;
-    seen.add(w);
-    if(STOPWORDS.has(w)) continue;
-    candidates.push(w);
-  }
-
-  // If too few, fall back to non-stopwords then to any words
-  let out = candidates.slice(0, k);
-  if(out.length < k){
-    const more = words.filter(w => !out.includes(w));
-    for(const w of more){
-      if(out.length >= k) break;
-      if(!STOPWORDS.has(w) && w.length >= 2) out.push(w);
-    }
-  }
-  if(out.length < k){
-    const more = words.filter(w => !out.includes(w));
-    for(const w of more){
-      if(out.length >= k) break;
-      out.push(w);
-    }
-  }
-
-  return out.slice(0, k).join(" ").trim() || "keyword";
-}
-
-function makeAnchor(baseUrl, slug, suffix, anchorText){
-  const href = joinUrl(baseUrl, slug + (suffix || ""));
-  return `<a href="${href}">${anchorText}</a>`;
+  const b = String(base || "").trim();
+  const p = String(path || "").trim();
+  if(!b) return p;
+  if(!p) return b;
+  const b2 = b.endsWith("/") ? b : b + "/";
+  return b2 + (p.startsWith("/") ? p.slice(1) : p);
 }
 
 function copyText(el){
@@ -106,6 +68,201 @@ function copyText(el){
   return Promise.resolve();
 }
 
+// ---------- Keyword selection (adaptive 2–4 words) ----------
+function normalizeText(s) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\bmahjongw\s+ays\b/g, "mahjongways")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenize(s){
+  return normalizeText(s).split(" ").filter(Boolean);
+}
+
+function uniq(arr){
+  return [...new Set(arr)];
+}
+
+// Keyword bank (user provided) + added Live RTP variants
+const KEYWORD_BANK_RAW = `
+momen awal tahun mahjongways
+pola legenda pgsoft
+pemicu kemenangan mahjongwins
+strategi mahjongways awal tahun
+bonus awal tahun mahjongways
+metode master kasino online
+pendekatan analitis mahjong ways
+strategi akhir tahun mahjongways
+optimalisasi bonus mahjongways
+rekomendasi game pgsoft
+panduan bermain mahjongways
+pola rahasia mahjongways
+nilai betting mahjongways
+pemain pemula kasino
+scatter hitam mahjongways
+pola master kasino
+kesalahan fatal mahjongways
+kemenangan spektakuler mahjongw ays
+server thailand mahjongways
+strategi bermain mahjongways
+teknik bermain mahjongways
+mahjongways kasino online
+klaim bonus mahjongways
+cara bermain mahjongways
+promo bonus mahjongways
+teknik menang mahjongways
+menang konsisten mahjongways
+pengaturan taruhan mahjongways
+teknik rahasia mahjongways
+strategi menang kasino online
+pola mahjongways terpercaya
+server kasino mahjongways
+pola mahjongways cuan
+metode pemain mahjongways senior
+pola resmi mahjongways
+bonus akhir tahun mahjongways
+tips pemula mahjongways
+pola betting mahjongways
+
+live rtp
+live rtp mahjongways
+live rtp kasino online
+rtp live mahjongways
+rtp live
+rtp mahjongways
+`;
+
+const KEYWORD_BANK = uniq(
+  KEYWORD_BANK_RAW
+    .split(/\r?\n/)
+    .map(s => normalizeText(s))
+    .filter(Boolean)
+).map(phrase => ({ phrase, tokens: tokenize(phrase) }));
+
+// Keep this light; keyword-bank matching is primary
+const STOPWORDS_ID = new Set([
+  "yang","dan","di","ke","dari","pada","dalam","untuk","dengan","oleh","sebagai","atau",
+  "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian"
+]);
+
+const TOKEN_BOOST = {
+  mahjongways: 140,
+  pgsoft: 100,
+  rtp: 95,
+  live: 35,
+  kasino: 85,
+  online: 70,
+  bonus: 70,
+  scatter: 80,
+  hitam: 75,
+  server: 70,
+  thailand: 75,
+  pola: 55,
+  menang: 45,
+  kemenangan: 40,
+  strategi: 35,
+  teknik: 35,
+  panduan: 40,
+  pemula: 40,
+  cuan: 45,
+  betting: 30,
+  taruhan: 30,
+  2026: 25,
+};
+
+function phraseMatchScore(titleSet, phraseTokens){
+  // score by overlap ratio + boosted tokens
+  let hit = 0;
+  let total = 0;
+  let boost = 0;
+  for(const t of phraseTokens){
+    if(t.length < 3) continue;
+    if(STOPWORDS_ID.has(t)) continue;
+    total += 1;
+    if(titleSet.has(t)) hit += 1;
+    boost += (TOKEN_BOOST[t] || 0);
+  }
+  if(total === 0) return 0;
+  const ratio = hit / total; // 0..1
+  return ratio * 1000 + boost * 0.5;
+}
+
+function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
+  const titleTokens = tokenize(title);
+  const titleSet = new Set(titleTokens);
+
+  const rankedPhrases = KEYWORD_BANK
+    .map(p => ({...p, score: phraseMatchScore(titleSet, p.tokens)}))
+    .sort((a,b) => b.score - a.score);
+
+  const out = [];
+
+  // If title mentions mahjongways, ensure it exists
+  if(titleSet.has("mahjongways")) out.push("mahjongways");
+
+  // Prefer best matching phrase if it has reasonable match
+  const best = rankedPhrases[0];
+  if(best && best.score >= 650){
+    for(const t of best.tokens){
+      if(out.length >= maxWords) break;
+      if(t.length < 3) continue;
+      if(STOPWORDS_ID.has(t)) continue;
+      if(!out.includes(t)) out.push(t);
+    }
+  }
+
+  // Fill the rest from title tokens by score
+  const scored = new Map();
+  for(const t of titleTokens){
+    if(t.length < 3) continue;
+    if(STOPWORDS_ID.has(t)) continue;
+    const score = 10 + (TOKEN_BOOST[t] || 0);
+    scored.set(t, (scored.get(t) || 0) + score);
+  }
+
+  const rankedTokens = [...scored.entries()]
+    .sort((a,b) => b[1] - a[1])
+    .map(([t]) => t);
+
+  for(const t of rankedTokens){
+    if(out.length >= maxWords) break;
+    if(!out.includes(t)) out.push(t);
+  }
+
+  // Ensure min words
+  if(out.length < minWords){
+    for(const t of rankedTokens){
+      if(!out.includes(t)) out.push(t);
+      if(out.length >= minWords) break;
+    }
+  }
+
+  return out.slice(0, maxWords);
+}
+
+function makeAnchor(title, baseUrl, suffix, slugLimit){
+  const limit = Number(slugLimit) || 50;
+  const slug = smartSlug(title, limit, 12);
+  const url = joinUrl(baseUrl, slug + (suffix || ""));
+  const keywords = extractAdaptiveKeywords(title, 2, 4).join(" ");
+  return { url, anchor: `<a href="${url}">${keywords}</a>` };
+}
+
+function extractLinksFromAnchors(anchorLines){
+  const out = [];
+  const re = /href\s*=\s*"([^"]+)"/i;
+  for(const a of anchorLines){
+    const m = re.exec(a);
+    if(m && m[1]) out.push(m[1].trim());
+  }
+  return out;
+}
+
 function generateAnchors(){
   const titles = lines($("tTitles").value);
   if(!titles.length){
@@ -115,44 +272,35 @@ function generateAnchors(){
 
   const baseUrl = $("baseUrl").value.trim();
   const suffix = $("suffix").value;
-  const maxChars = parseInt($("maxChars").value, 10) || 50;
+  const slugLimit = $("slugLimit").value;
+
+  if(!baseUrl){
+    setStatus("bad", "ERROR: Domain / Base URL kosong.");
+    return;
+  }
 
   const anchors = [];
   for(const t of titles){
-    const slug = slugFromTitle(t, maxChars);
-    const kw = pickKeywords(t, 3);
-    anchors.push(makeAnchor(baseUrl, slug, suffix, kw));
+    anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
   }
 
   $("outAnchor").value = anchors.join("\n");
-  setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk output link.`);
+  setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
 }
 
 function extractLinks(){
-  const text = $("outAnchor").value || "";
-  if(!text.trim()){
+  const anchorList = lines($("outAnchor").value);
+  if(!anchorList.length){
     setStatus("bad", "ERROR: Output anchor masih kosong.");
     return;
   }
-
-  // extract href="..."
-  const hrefs = [];
-  const re = /href\s*=\s*["']([^"']+)["']/gi;
-  let m;
-  while((m = re.exec(text)) !== null){
-    hrefs.push(m[1]);
-  }
-  if(!hrefs.length){
-    setStatus("bad", "ERROR: Tidak menemukan href di anchor.");
-    return;
-  }
-
-  $("outLinks").value = hrefs.join("\n");
-  setStatus("ok", `Sukses: ${hrefs.length} link diambil dari anchor.`);
+  const links = extractLinksFromAnchors(anchorList);
+  $("outLinks").value = links.join("\n");
+  setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
 }
 
 $("btnMakeAnchor").addEventListener("click", generateAnchors);
-$("btnExtract").addEventListener("click", extractLinks);
+$("btnExtractLink").addEventListener("click", extractLinks);
 
 $("btnClear").addEventListener("click", ()=>{
   $("tTitles").value = "";
@@ -163,12 +311,12 @@ $("btnClear").addEventListener("click", ()=>{
 
 $("copyAnchor").addEventListener("click", async ()=>{
   await copyText($("outAnchor"));
-  setStatus("ok", "Anchor dicopy.");
+  setStatus("ok", "Anchor text dicopy.");
 });
+
 $("copyLinks").addEventListener("click", async ()=>{
   await copyText($("outLinks"));
   setStatus("ok", "Link dicopy.");
 });
 
-// initial
-setStatus("idle", "Masukkan judul, lalu klik Generate Anchor Text.");
+setStatus("idle", "Tempel daftar judul → Generate Anchor Text → Ambil Link dari Anchor.");
