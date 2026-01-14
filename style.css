@@ -226,17 +226,6 @@ input:focus, textarea:focus{
 .t-title{ font-weight: 800; }
 .t-sub{ color: var(--muted); font-size: 12px; margin-top: 2px; }
 
-.mini{
-  display:flex; gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(11, 19, 38, .55);
-  margin-top: 12px;
-}
-.mini-k{ color: var(--muted); font-size: 12px; }
-.mini-v{ font-size: 12px; }
-
 .status{
   padding: 12px;
   border-radius: 14px;
