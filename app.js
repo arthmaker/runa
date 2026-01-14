@@ -417,3 +417,67 @@ setStatus("idle", "Upload template untuk memulai.");
 report([
   {k:"Catatan", v:"Gunakan placeholder unik agar aman (mis. <code>{{JUDUL}}</code>, <code>{{LINK}}</code>, <code>{{GAMBAR}}</code>, <code>{{ARTIKEL}}</code>)."}
 ]);
+
+
+
+// === Layout resize + save (localStorage) ===
+function _lsKeyFor(el){
+  const page = location.pathname.split("/").pop() || "index.html";
+  const k = el.getAttribute("data-size-key") || el.id || el.className || "el";
+  return `runa:layout:${page}:${k}`;
+}
+
+function _applySavedSize(el){
+  try{
+    const raw = localStorage.getItem(_lsKeyFor(el));
+    if(!raw) return;
+    const {w,h} = JSON.parse(raw);
+    if(w) el.style.width = w + "px";
+    if(h) el.style.height = h + "px";
+  }catch(e){}
+}
+
+function _saveSize(el){
+  try{
+    const rect = el.getBoundingClientRect();
+    const payload = { w: Math.round(rect.width), h: Math.round(rect.height) };
+    localStorage.setItem(_lsKeyFor(el), JSON.stringify(payload));
+  }catch(e){}
+}
+
+function initLayoutPersistence(){
+  const els = Array.from(document.querySelectorAll("[data-size-key]"));
+  if(!els.length) return;
+
+  // apply saved sizes
+  els.forEach(_applySavedSize);
+
+  // observe resizes and save (debounced)
+  const timers = new Map();
+  const ro = new ResizeObserver(entries => {
+    for (const entry of entries){
+      const el = entry.target;
+      clearTimeout(timers.get(el));
+      timers.set(el, setTimeout(()=>_saveSize(el), 250));
+    }
+  });
+  els.forEach(el => ro.observe(el));
+
+  // buttons
+  const btnSave = document.getElementById("btnSaveLayout");
+  if(btnSave){
+    btnSave.addEventListener("click", ()=>{
+      els.forEach(_saveSize);
+      toast && toast("Layout disimpan.");
+    });
+  }
+  const btnReset = document.getElementById("btnResetLayout");
+  if(btnReset){
+    btnReset.addEventListener("click", ()=>{
+      els.forEach(el => localStorage.removeItem(_lsKeyFor(el)));
+      location.reload();
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initLayoutPersistence);
