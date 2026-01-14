@@ -135,45 +135,31 @@ function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
 
   const tokenScore = (word, index) => {
     const boost = TOKEN_BOOST[word] || 0;
-    const position = Math.max(0, 24 - index);
-    return 8 + boost + position;
+    const position = Math.max(0, 20 - index);
+    return 10 + boost + position;
   };
 
-  const scoredTokens = titleTokens
-    .map((word, index) => ({ word, score: tokenScore(word, index), index }))
-    .filter(({ word }) => isWordAllowed(word));
-
-  const scoreByWord = new Map();
-  for(const token of scoredTokens){
-    const current = scoreByWord.get(token.word) || 0;
-    if(token.score > current) scoreByWord.set(token.word, token.score);
-  }
-
-  const rankedTokens = [...scoredTokens]
+  const rankedTokens = titleTokens
+    .map((word, index) => ({ word, score: tokenScore(word, index) }))
+    .filter(({ word }) => isWordAllowed(word))
     .sort((a, b) => b.score - a.score)
     .map(({ word }) => word);
 
-  let bestWindow = [];
+  let bestPhrase = [];
   let bestScore = -1;
 
-  for(let start = 0; start < titleTokens.length; start += 1){
-    if(!isWordAllowed(titleTokens[start])) continue;
-    for(let end = start; end < Math.min(titleTokens.length, start + maxWords); end += 1){
-      const windowTokens = titleTokens.slice(start, end + 1).filter(isWordAllowed);
-      if(windowTokens.length < minWords) continue;
-      if(windowTokens.length > maxWords) continue;
-      const windowScore = windowTokens.reduce((sum, word) => {
-        return sum + (scoreByWord.get(word) || 0);
-      }, 0) + (windowTokens.includes("mahjongways") ? 50 : 0);
-
-      if(windowScore > bestScore){
-        bestScore = windowScore;
-        bestWindow = windowTokens;
-      }
+  for(let i = 0; i < titleTokens.length - 1; i += 1){
+    const first = titleTokens[i];
+    const second = titleTokens[i + 1];
+    if(!isWordAllowed(first) || !isWordAllowed(second)) continue;
+    const score = tokenScore(first, i) + tokenScore(second, i + 1);
+    if(score > bestScore){
+      bestScore = score;
+      bestPhrase = [first, second];
     }
   }
 
-  const out = bestWindow.length ? [...bestWindow] : [];
+  const out = bestPhrase.length ? [...bestPhrase] : [];
 
   if(titleSet.has("mahjongways") && !out.includes("mahjongways")){
     out.push("mahjongways");
@@ -182,6 +168,13 @@ function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
   for(const t of rankedTokens){
     if(out.length >= maxWords) break;
     if(!out.includes(t)) out.push(t);
+  }
+
+  if(out.length < minWords){
+    for(const t of rankedTokens){
+      if(!out.includes(t)) out.push(t);
+      if(out.length >= minWords) break;
+    }
   }
 
   return out.slice(0, maxWords);
