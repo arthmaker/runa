@@ -52,17 +52,14 @@
           <div class="field">
             <label>Placeholder Judul</label>
             <input id="phTitle" value="*JUDUL*" />
-            <div class="help">Contoh unik: <code>{{JUDUL}}</code></div>
           </div>
           <div class="field">
             <label>Placeholder Link</label>
             <input id="phLink" value="*LINK*" />
-            <div class="help">Contoh unik: <code>{{LINK}}</code></div>
           </div>
           <div class="field">
             <label>Placeholder Gambar</label>
             <input id="phImg" value="*GAMBAR*" />
-            <div class="help">Contoh unik: <code>{{GAMBAR}}</code></div>
           </div>
           <div class="field">
             <label>Placeholder Artikel</label>
@@ -116,17 +113,6 @@
 
           <div class="side">
             <div class="field">
-              <label>Nama ZIP</label>
-              <input id="zipName" value="artikel-output.zip" />
-              <div class="help">Otomatis ditambah <code>.zip</code> jika belum ada.</div>
-            </div>
-
-            <div class="actions">
-              <button id="btnGenerate" class="btn primary" type="button">Generate & Download ZIP</button>
-              <button id="btnPreview" class="btn" type="button">Preview 1 File</button>
-            </div>
-
-            <div class="field">
               <label>Upload Gambar (opsional)</label>
               <input id="imageFiles" type="file" accept="image/*" multiple />
               <div class="help">
@@ -134,28 +120,43 @@
               </div>
             </div>
 
-            <div class="toggle">
-              <input id="chkStrict" type="checkbox" checked />
-              <label for="chkStrict">
-                <div class="t-title">Strict integrity check</div>
-                <div class="t-sub">Gagal jika ada perubahan selain placeholder.</div>
-              </label>
+            <div class="zip-row">
+              <div class="field">
+                <label>Nama ZIP</label>
+                <input id="zipName" value="artikel-output.zip" />
+                <div class="help">Otomatis ditambah <code>.zip</code> jika belum ada.</div>
+              </div>
+              <button id="btnGenerate" class="btn primary" type="button">Generate & Download ZIP</button>
             </div>
 
-            <div class="toggle">
-              <input id="chkNameFromLink" type="checkbox" checked />
-              <label for="chkNameFromLink">
-                <div class="t-title">Nama file dari LINK</div>
-                <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
-              </label>
+            <div class="actions">
+              <button id="btnPreview" class="btn" type="button">Preview 1 File</button>
             </div>
 
-            <div class="toggle">
-              <input id="chkAutoRefresh" type="checkbox" checked />
-              <label for="chkAutoRefresh">
-                <div class="t-title">Auto refresh setelah download</div>
-                <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
-              </label>
+            <div class="toggle-row">
+              <div class="toggle">
+                <input id="chkStrict" type="checkbox" checked />
+                <label for="chkStrict">
+                  <div class="t-title">Strict integrity check</div>
+                  <div class="t-sub">Gagal jika ada perubahan selain placeholder.</div>
+                </label>
+              </div>
+
+              <div class="toggle">
+                <input id="chkNameFromLink" type="checkbox" checked />
+                <label for="chkNameFromLink">
+                  <div class="t-title">Nama file dari LINK</div>
+                  <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
+                </label>
+              </div>
+
+              <div class="toggle">
+                <input id="chkAutoRefresh" type="checkbox" checked />
+                <label for="chkAutoRefresh">
+                  <div class="t-title">Auto refresh setelah download</div>
+                  <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
