@@ -109,6 +109,8 @@
             </div>
           </div>
         </div>
+        <div id="status" class="status idle">Belum ada proses.</div>
+        <div class="report" id="report"></div>
 
             <div class="zip-row">
               <div class="field">
@@ -119,8 +121,11 @@
               <button id="btnGenerate" class="btn primary" type="button">Generate & Download ZIP</button>
             </div>
           </div>
-
-            <div class="toggle-row">
+          
+          <details class="tips">
+            <ul>
+              <li>
+              <div class="toggle-row">
               <div class="toggle">
                 <input id="chkStrict" type="checkbox" checked />
                 <label for="chkStrict">
@@ -128,7 +133,8 @@
                   <div class="t-sub">Gagal jika ada perubahan selain placeholder.</div>
                 </label>
               </div>
-
+              </li>
+              <li>
               <div class="toggle">
                 <input id="chkNameFromLink" type="checkbox" checked />
                 <label for="chkNameFromLink">
@@ -136,7 +142,8 @@
                   <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
                 </label>
               </div>
-
+              </li>
+              <li>
           <div class="toggle">
             <input id="chkAutoRefresh" type="checkbox" checked />
               <label for="chkAutoRefresh">
@@ -144,9 +151,9 @@
                 <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
               </label>
             </div>
-          </div>
-          <div id="status" class="status idle">Belum ada proses.</div>
-          <div class="report" id="report"></div>
+            </li>
+          </ul>
+          </details>
           <details class="tips">
             <summary>Tips cepat</summary>
             <ul>
@@ -155,7 +162,6 @@
               <li>Preview hanya menampilkan file pertama untuk cek cepat.</li>
             </ul>
           </details>
-        </div>
       </section>
       <footer class="footer">
         <span>Berjalan 100% di browser • Cocok untuk GitHub Pages • Tidak mengirim data ke server</span>
