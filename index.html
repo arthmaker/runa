@@ -31,7 +31,7 @@
     </header>
 
     <main class="grid">
-      <section class="card status-card">
+      <section class="card template-card">
         <div class="card-head">
           <h2>1) Template</h2>
           <span class="pill">Fleksibel</span>
@@ -69,7 +69,7 @@
         </div>
       </section>
 
-      <section class="card status-card">
+      <section class="card data-card">
         <div class="card-head">
           <h2>2) Data</h2>
           <span class="pill">Satu per baris</span>
@@ -96,59 +96,58 @@
             <div class="help">Upload <code>artikel.txt</code> berisi banyak blok artikel. Mapping berdasarkan urutan (blok #1 untuk judul baris #1, dst).</div>
           </div>
 
-          <div class="field">
-            <label>Upload Gambar (opsional)</label>
-            <div class="dropzone" tabindex="0" role="button" aria-label="Upload gambar">
+          <div class="side">
+            <div class="field">
+              <label>Upload Gambar (opsional)</label>
               <input id="imageFiles" type="file" accept="image/*" multiple />
               <div class="dz-inner">
                 <div class="dz-icn" aria-hidden="true">⬆</div>
                 <div>
                   <div class="dz-title">Drag & drop gambar di sini</div>
-                  <div class="dz-sub">atau klik untuk memilih file <span class="kbd">image/*</span></div>
+                  <div class="dz-sub">atau klik untuk memilih file</div>
                 </div>
               </div>
             </div>
-            <div class="help">
-              Jika di-upload, file gambar akan dimasukkan ke ZIP dan <strong>di-rename</strong> mengikuti daftar <em>GAMBAR</em> (nama file diambil dari URL). Urutan gambar mengikuti urutan baris.
+
+            <div class="zip-row">
+              <div class="field">
+                <label>Nama ZIP</label>
+                <input id="zipName" value="artikel-output.zip" />
+                <div class="help">Otomatis ditambah <code>.zip</code> jika belum ada.</div>
+              </div>
+              <button id="btnGenerate" class="btn primary" type="button">Generate & Download ZIP</button>
             </div>
           </div>
 
-          <div class="field">
-            <label>Nama ZIP</label>
-            <input id="zipName" value="artikel-output.zip" />
-            <div class="help">Otomatis ditambah <code>.zip</code> jika belum ada.</div>
-          </div>
+            <div class="actions">
+              <button id="btnPreview" class="btn" type="button">Preview 1 File</button>
+            </div>
 
-          <div class="actions">
-            <button id="btnGenerate" class="btn primary" type="button">Generate & Download ZIP</button>
-          </div>
+            <div class="toggle-row">
+              <div class="toggle">
+                <input id="chkStrict" type="checkbox" checked />
+                <label for="chkStrict">
+                  <div class="t-title">Strict integrity check</div>
+                  <div class="t-sub">Gagal jika ada perubahan selain placeholder.</div>
+                </label>
+              </div>
 
-          <div class="actions">
-            <button id="btnPreview" class="btn" type="button">Preview 1 File</button>
-          </div>
+              <div class="toggle">
+                <input id="chkNameFromLink" type="checkbox" checked />
+                <label for="chkNameFromLink">
+                  <div class="t-title">Nama file dari LINK</div>
+                  <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
+                </label>
+              </div>
 
-          <div class="toggle">
-            <input id="chkStrict" type="checkbox" checked />
-            <label for="chkStrict">
-              <div class="t-title">Strict integrity check</div>
-              <div class="t-sub">Gagal jika ada perubahan selain placeholder.</div>
-            </label>
-          </div>
-
-          <div class="toggle">
-            <input id="chkNameFromLink" type="checkbox" checked />
-            <label for="chkNameFromLink">
-              <div class="t-title">Nama file dari LINK</div>
-              <div class="t-sub">Jika duplikat, otomatis diberi suffix.</div>
-            </label>
-          </div>
-
-          <div class="toggle">
-            <input id="chkAutoRefresh" type="checkbox" checked />
-            <label for="chkAutoRefresh">
-              <div class="t-title">Auto refresh setelah download</div>
-              <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
-            </label>
+              <div class="toggle">
+                <input id="chkAutoRefresh" type="checkbox" checked />
+                <label for="chkAutoRefresh">
+                  <div class="t-title">Auto refresh setelah download</div>
+                  <div class="t-sub">Mencegah double-generate/duplikat jika tombol terklik lagi.</div>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </section>
