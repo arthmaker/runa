@@ -226,18 +226,21 @@ function generateAnchors(){
   const suffix = $("suffix")?.value;
   const slugLimit = $("slugLimit")?.value;
 
-  if(!baseUrl){
-    setStatus("bad", "ERROR: Domain / Base URL kosong.");
-    return;
-  }
+    if(!baseUrl){
+      setStatus("bad", "ERROR: Domain / Base URL kosong.");
+      return;
+    }
 
-  const anchors = [];
-  for(const t of titles){
-    anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
-  }
+    const anchors = [];
+    for(const t of titles){
+      anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
+    }
 
-  $("outAnchor").value = anchors.join("\n");
-  setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
+    outAnchorEl.value = anchors.join("\n");
+    setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
+  }catch (err){
+    setStatus("bad", `ERROR: ${err?.message || "Gagal generate anchor."}`);
+  }
 }
 
 function extractLinks(){
@@ -251,9 +254,6 @@ function extractLinks(){
     setStatus("bad", "ERROR: Output anchor masih kosong.");
     return;
   }
-  const links = extractLinksFromAnchors(anchorList);
-  $("outLinks").value = links.join("\n");
-  setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
 }
 
 $("btnMakeAnchor")?.addEventListener("click", generateAnchors);
