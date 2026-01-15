@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 function setStatus(type, msg){
   const el = $("tStatus");
+  if(!el) return;
   el.className = `status ${type}`;
   el.textContent = msg;
 }
@@ -84,172 +85,54 @@ function tokenize(s){
   return normalizeText(s).split(" ").filter(Boolean);
 }
 
-function uniq(arr){
-  return [...new Set(arr)];
-}
-
-// Keyword bank (user provided) + added Live RTP variants
-const KEYWORD_BANK_RAW = `
-momen awal tahun mahjongways
-pola legenda pgsoft
-pemicu kemenangan mahjongwins
-strategi mahjongways awal tahun
-bonus awal tahun mahjongways
-metode master kasino online
-pendekatan analitis mahjong ways
-strategi akhir tahun mahjongways
-optimalisasi bonus mahjongways
-rekomendasi game pgsoft
-panduan bermain mahjongways
-pola rahasia mahjongways
-nilai betting mahjongways
-pemain pemula kasino
-scatter hitam mahjongways
-pola master kasino
-kesalahan fatal mahjongways
-kemenangan spektakuler mahjongw ays
-server thailand mahjongways
-strategi bermain mahjongways
-teknik bermain mahjongways
-mahjongways kasino online
-klaim bonus mahjongways
-cara bermain mahjongways
-promo bonus mahjongways
-teknik menang mahjongways
-menang konsisten mahjongways
-pengaturan taruhan mahjongways
-teknik rahasia mahjongways
-strategi menang kasino online
-pola mahjongways terpercaya
-server kasino mahjongways
-pola mahjongways cuan
-metode pemain mahjongways senior
-pola resmi mahjongways
-bonus akhir tahun mahjongways
-tips pemula mahjongways
-pola betting mahjongways
-
-live rtp
-live rtp mahjongways
-live rtp kasino online
-rtp live mahjongways
-rtp live
-rtp mahjongways
-`;
-
-const KEYWORD_BANK = uniq(
-  KEYWORD_BANK_RAW
-    .split(/\r?\n/)
-    .map(s => normalizeText(s))
-    .filter(Boolean)
-).map(phrase => ({ phrase, tokens: tokenize(phrase) }));
-
-// Keep this light; keyword-bank matching is primary
 const STOPWORDS_ID = new Set([
   "yang","dan","di","ke","dari","pada","dalam","untuk","dengan","oleh","sebagai","atau",
-  "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian"
+  "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian",
+  "awal","tahun","fase","periode","terhadap","bagaimana","mengapa","apa","saat"
 ]);
 
-const TOKEN_BOOST = {
-  mahjongways: 140,
-  pgsoft: 100,
-  rtp: 95,
-  live: 35,
-  kasino: 85,
-  online: 70,
-  bonus: 70,
-  scatter: 80,
-  hitam: 75,
-  server: 70,
-  thailand: 75,
-  pola: 55,
-  menang: 45,
-  kemenangan: 40,
-  strategi: 35,
-  teknik: 35,
-  panduan: 40,
-  pemula: 40,
-  cuan: 45,
-  betting: 30,
-  taruhan: 30,
-  2026: 25,
-};
+const PRIORITY_KEYWORDS = [
+  "mahjongways","kasino","online","rtp","scatter","server","bonus","pola","jam","login"
+];
 
-function phraseMatchScore(titleSet, phraseTokens){
-  // score by overlap ratio + boosted tokens
-  let hit = 0;
-  let total = 0;
-  let boost = 0;
-  for(const t of phraseTokens){
-    if(t.length < 3) continue;
-    if(STOPWORDS_ID.has(t)) continue;
-    total += 1;
-    if(titleSet.has(t)) hit += 1;
-    boost += (TOKEN_BOOST[t] || 0);
-  }
-  if(total === 0) return 0;
-  const ratio = hit / total; // 0..1
-  return ratio * 1000 + boost * 0.5;
-}
-
-function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
+function extractAdaptiveKeywords(title, minWords = 3, maxWords = 3){
   const titleTokens = tokenize(title);
-  const titleSet = new Set(titleTokens);
+  const primaryMinLength = 3;
+  const fallbackMinLength = 2;
+  const isWordAllowed = (word, minLength) => word.length >= minLength && !STOPWORDS_ID.has(word);
 
-  const rankedPhrases = KEYWORD_BANK
-    .map(p => ({...p, score: phraseMatchScore(titleSet, p.tokens)}))
-    .sort((a,b) => b.score - a.score);
-
-  const out = [];
-
-  // If title mentions mahjongways, ensure it exists
-  if(titleSet.has("mahjongways")) out.push("mahjongways");
-
-  // Prefer best matching phrase if it has reasonable match
-  const best = rankedPhrases[0];
-  if(best && best.score >= 650){
-    for(const t of best.tokens){
-      if(out.length >= maxWords) break;
-      if(t.length < 3) continue;
-      if(STOPWORDS_ID.has(t)) continue;
-      if(!out.includes(t)) out.push(t);
-    }
+  let filtered = titleTokens.filter((word) => isWordAllowed(word, primaryMinLength));
+  if(filtered.length === 0){
+    filtered = titleTokens.filter((word) => isWordAllowed(word, fallbackMinLength));
+  }
+  const unique = [];
+  for(const word of filtered){
+    if(!unique.includes(word)) unique.push(word);
   }
 
-  // Fill the rest from title tokens by score
-  const scored = new Map();
-  for(const t of titleTokens){
-    if(t.length < 3) continue;
-    if(STOPWORDS_ID.has(t)) continue;
-    const score = 10 + (TOKEN_BOOST[t] || 0);
-    scored.set(t, (scored.get(t) || 0) + score);
-  }
+  const priorityIndex = new Map(PRIORITY_KEYWORDS.map((word, index) => [word, index]));
+  unique.sort((a, b) => {
+    const pa = priorityIndex.has(a) ? priorityIndex.get(a) : 99;
+    const pb = priorityIndex.has(b) ? priorityIndex.get(b) : 99;
+    if(pa === pb) return 0;
+    return pa - pb;
+  });
 
-  const rankedTokens = [...scored.entries()]
-    .sort((a,b) => b[1] - a[1])
-    .map(([t]) => t);
+  const trimmed = unique.slice(0, maxWords);
+  if(trimmed.length >= minWords) return trimmed.slice(0, maxWords);
 
-  for(const t of rankedTokens){
-    if(out.length >= maxWords) break;
-    if(!out.includes(t)) out.push(t);
-  }
-
-  // Ensure min words
-  if(out.length < minWords){
-    for(const t of rankedTokens){
-      if(!out.includes(t)) out.push(t);
-      if(out.length >= minWords) break;
-    }
-  }
-
-  return out.slice(0, maxWords);
+  const fallback = titleTokens
+    .filter((word) => isWordAllowed(word, fallbackMinLength))
+    .filter((word, index, arr) => arr.indexOf(word) === index)
+    .slice(0, maxWords);
+  return fallback.length ? fallback : ["artikel"];
 }
 
 function makeAnchor(title, baseUrl, suffix, slugLimit){
   const limit = Number(slugLimit) || 50;
   const slug = smartSlug(title, limit, 12);
   const url = joinUrl(baseUrl, slug + (suffix || ""));
-  const keywords = extractAdaptiveKeywords(title, 2, 4).join(" ");
+  const keywords = extractAdaptiveKeywords(title, 2, 4).join(" ") || "artikel";
   return { url, anchor: `<a href="${url}">${keywords}</a>` };
 }
 
@@ -264,57 +147,87 @@ function extractLinksFromAnchors(anchorLines){
 }
 
 function generateAnchors(){
-  const titles = lines($("tTitles").value);
-  if(!titles.length){
-    setStatus("bad", "ERROR: Daftar judul kosong.");
-    return;
+  try{
+    const titleEl = $("tTitles");
+    const baseUrlEl = $("baseUrl");
+    const outAnchorEl = $("outAnchor");
+    if(!titleEl || !baseUrlEl || !outAnchorEl){
+      setStatus("bad", "ERROR: Form anchor tidak lengkap.");
+      return;
+    }
+    const titles = lines(titleEl.value);
+    if(!titles.length){
+      setStatus("bad", "ERROR: Daftar judul kosong.");
+      return;
+    }
+
+    const baseUrl = baseUrlEl.value.trim();
+    const suffixEl = $("suffix");
+    const slugLimitEl = $("slugLimit");
+    const suffix = suffixEl ? suffixEl.value : "";
+    const slugLimit = slugLimitEl ? slugLimitEl.value : "";
+
+    if(!baseUrl){
+      setStatus("bad", "ERROR: Domain / Base URL kosong.");
+      return;
+    }
+
+    const anchors = [];
+    for(const t of titles){
+      anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
+    }
+
+    outAnchorEl.value = anchors.join("\n");
+    setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
+  }catch (err){
+    setStatus("bad", `ERROR: ${err?.message || "Gagal generate anchor."}`);
   }
-
-  const baseUrl = $("baseUrl").value.trim();
-  const suffix = $("suffix").value;
-  const slugLimit = $("slugLimit").value;
-
-  if(!baseUrl){
-    setStatus("bad", "ERROR: Domain / Base URL kosong.");
-    return;
-  }
-
-  const anchors = [];
-  for(const t of titles){
-    anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
-  }
-
-  $("outAnchor").value = anchors.join("\n");
-  setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
 }
 
 function extractLinks(){
-  const anchorList = lines($("outAnchor").value);
-  if(!anchorList.length){
-    setStatus("bad", "ERROR: Output anchor masih kosong.");
-    return;
+  try{
+    const outAnchorEl = $("outAnchor");
+    const outLinksEl = $("outLinks");
+    if(!outAnchorEl || !outLinksEl){
+      setStatus("bad", "ERROR: Output anchor tidak ditemukan.");
+      return;
+    }
+    const anchorList = lines(outAnchorEl.value);
+    if(!anchorList.length){
+      setStatus("bad", "ERROR: Output anchor masih kosong.");
+      return;
+    }
+    const links = extractLinksFromAnchors(anchorList);
+    outLinksEl.value = links.join("\n");
+    setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
+  }catch (err){
+    setStatus("bad", `ERROR: ${err?.message || "Gagal ambil link."}`);
   }
-  const links = extractLinksFromAnchors(anchorList);
-  $("outLinks").value = links.join("\n");
-  setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
 }
 
-$("btnMakeAnchor").addEventListener("click", generateAnchors);
-$("btnExtractLink").addEventListener("click", extractLinks);
+const btnMakeAnchor = $("btnMakeAnchor");
+if(btnMakeAnchor) btnMakeAnchor.addEventListener("click", generateAnchors);
+const btnExtractLink = $("btnExtractLink");
+if(btnExtractLink) btnExtractLink.addEventListener("click", extractLinks);
 
-$("btnClear").addEventListener("click", ()=>{
-  $("tTitles").value = "";
-  $("outAnchor").value = "";
-  $("outLinks").value = "";
+const btnClear = $("btnClear");
+if(btnClear) btnClear.addEventListener("click", ()=>{
+  if($("tTitles")) $("tTitles").value = "";
+  if($("outAnchor")) $("outAnchor").value = "";
+  if($("outLinks")) $("outLinks").value = "";
   setStatus("idle", "Reset selesai.");
 });
 
-$("copyAnchor").addEventListener("click", async ()=>{
+const copyAnchor = $("copyAnchor");
+if(copyAnchor) copyAnchor.addEventListener("click", async ()=>{
+  if(!$("outAnchor")) return;
   await copyText($("outAnchor"));
   setStatus("ok", "Anchor text dicopy.");
 });
 
-$("copyLinks").addEventListener("click", async ()=>{
+const copyLinks = $("copyLinks");
+if(copyLinks) copyLinks.addEventListener("click", async ()=>{
+  if(!$("outLinks")) return;
   await copyText($("outLinks"));
   setStatus("ok", "Link dicopy.");
 });

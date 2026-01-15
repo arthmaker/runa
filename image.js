@@ -1,89 +1,94 @@
-const $ = (id) => document.getElementById(id);
+(() => {
+  const getEl = (id) => document.getElementById(id);
 
-function setStatus(type, msg){
-  const el = $("imgStatus");
-  el.className = `status ${type}`;
-  el.textContent = msg;
-}
+  const setStatus = (type, msg) => {
+    const el = getEl("imgStatus");
+    if(!el) return;
+    el.className = `status ${type}`;
+    el.textContent = msg;
+  };
 
-function ensureTrailingSlash(url){
-  const u = String(url || "").trim();
-  if(!u) return "";
-  return u.endsWith("/") ? u : u + "/";
-}
+  const ensureTrailingSlash = (url) => {
+    const u = String(url || "").trim();
+    if(!u) return "";
+    return u.endsWith("/") ? u : u + "/";
+  };
 
-function copyText(el){
-  const v = el.value || "";
-  if(navigator.clipboard && typeof navigator.clipboard.writeText === "function"){
-    return navigator.clipboard.writeText(v);
-  }
-  el.focus();
-  el.select();
-  document.execCommand("copy");
-  return Promise.resolve();
-}
+  const copyText = (el) => {
+    const v = el.value || "";
+    if(navigator.clipboard && typeof navigator.clipboard.writeText === "function"){
+      return navigator.clipboard.writeText(v);
+    }
+    el.focus();
+    el.select();
+    document.execCommand("copy");
+    return Promise.resolve();
+  };
 
-// ---------- Persist inputs (auto-save) ----------
-const KEY_DOMAIN = "runa_img_domain";
-const KEY_BASE = "runa_img_base";
-const KEY_EXT = "runa_img_ext";
+  // ---------- Persist inputs (auto-save) ----------
+  const KEY_DOMAIN = "runa_img_domain";
+  const KEY_BASE = "runa_img_base";
+  const KEY_EXT = "runa_img_ext";
 
-function loadSaved(){
-  const d = localStorage.getItem(KEY_DOMAIN);
-  const b = localStorage.getItem(KEY_BASE);
-  const e = localStorage.getItem(KEY_EXT);
-  if(d) $("imgDomain").value = d;
-  if(b) $("imgBaseName").value = b;
-  if(e) $("imgExt").value = e;
-}
+  const loadSaved = () => {
+    const d = localStorage.getItem(KEY_DOMAIN);
+    const b = localStorage.getItem(KEY_BASE);
+    const e = localStorage.getItem(KEY_EXT);
+    if(d && getEl("imgDomain")) getEl("imgDomain").value = d;
+    if(b && getEl("imgBaseName")) getEl("imgBaseName").value = b;
+    if(e && getEl("imgExt")) getEl("imgExt").value = e;
+  };
 
-function saveNow(){
-  localStorage.setItem(KEY_DOMAIN, $("imgDomain").value || "");
-  localStorage.setItem(KEY_BASE, $("imgBaseName").value || "");
-  localStorage.setItem(KEY_EXT, $("imgExt").value || "");
-}
+  const saveNow = () => {
+    if(getEl("imgDomain")) localStorage.setItem(KEY_DOMAIN, getEl("imgDomain").value || "");
+    if(getEl("imgBaseName")) localStorage.setItem(KEY_BASE, getEl("imgBaseName").value || "");
+    if(getEl("imgExt")) localStorage.setItem(KEY_EXT, getEl("imgExt").value || "");
+  };
 
-for(const id of ["imgDomain","imgBaseName","imgExt"]){
-  $(id).addEventListener("input", saveNow);
-}
-
-function generate(){
-  const domain = ensureTrailingSlash($("imgDomain").value);
-  const base = String($("imgBaseName").value || "").trim();
-  const ext = String($("imgExt").value || "").trim();
-
-  if(!domain || !base || !ext){
-    setStatus("bad", "ERROR: Semua box wajib diisi (domain, nama file, format)." );
-    return;
+  for(const id of ["imgDomain","imgBaseName","imgExt"]){
+    const el = getEl(id);
+    if(el) el.addEventListener("input", saveNow);
   }
 
-  saveNow();
+  const generate = () => {
+    const domain = ensureTrailingSlash(getEl("imgDomain")?.value);
+    const base = String(getEl("imgBaseName")?.value || "").trim();
+    const ext = String(getEl("imgExt")?.value || "").trim();
 
-  const out = [];
-  for(let i=1; i<=10; i++){
-    out.push(`${domain}${base}${i}${ext}`);
-  }
-  $("out").value = out.join("\n");
-  setStatus("ok", "Sukses: 10 link dibuat. Klik Copy Hasil.");
-}
+    if(!domain || !base || !ext){
+      setStatus("bad", "ERROR: Semua box wajib diisi (domain, nama file, format)." );
+      return;
+    }
 
-$("btnGenerate").addEventListener("click", generate);
+    saveNow();
 
-$("btnReset").addEventListener("click", ()=>{
-  $("imgDomain").value = "";
-  $("imgBaseName").value = "";
-  $("imgExt").value = "";
-  $("out").value = "";
-  localStorage.removeItem(KEY_DOMAIN);
-  localStorage.removeItem(KEY_BASE);
-  localStorage.removeItem(KEY_EXT);
-  setStatus("idle", "Reset selesai.");
-});
+    const out = [];
+    for(let i=1; i<=10; i++){
+      out.push(`${domain}${base}${i}${ext}`);
+    }
+    if(getEl("out")) getEl("out").value = out.join("\n");
+    setStatus("ok", "Sukses: 10 link dibuat. Klik Copy Hasil.");
+  };
 
-$("btnCopy").addEventListener("click", async ()=>{
-  await copyText($("out"));
-  setStatus("ok", "Hasil dicopy.");
-});
+  getEl("btnGenerate")?.addEventListener("click", generate);
 
-loadSaved();
-setStatus("idle", "Isi 3 box → klik Generate.");
+  getEl("btnReset")?.addEventListener("click", () => {
+    if(getEl("imgDomain")) getEl("imgDomain").value = "";
+    if(getEl("imgBaseName")) getEl("imgBaseName").value = "";
+    if(getEl("imgExt")) getEl("imgExt").value = "";
+    if(getEl("out")) getEl("out").value = "";
+    localStorage.removeItem(KEY_DOMAIN);
+    localStorage.removeItem(KEY_BASE);
+    localStorage.removeItem(KEY_EXT);
+    setStatus("idle", "Reset selesai.");
+  });
+
+  getEl("btnCopy")?.addEventListener("click", async () => {
+    if(!getEl("out")) return;
+    await copyText(getEl("out"));
+    setStatus("ok", "Hasil dicopy.");
+  });
+
+  loadSaved();
+  setStatus("idle", "Isi 3 box → klik Generate.");
+})();
