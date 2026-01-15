@@ -201,7 +201,7 @@ function makeAnchor(title, baseUrl, suffix, slugLimit){
 
 function extractLinksFromAnchors(anchorLines){
   const out = [];
-  const re = /href\s*=\s*"([^"]+)"/i;
+  const re = /href\s*=\s*["']([^"']+)["']/i;
   for(const a of anchorLines){
     const m = re.exec(a);
     if(m && m[1]) out.push(m[1].trim());
