@@ -177,7 +177,17 @@ function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
     }
   }
 
-  return out.slice(0, maxWords);
+  const priorityIndex = new Map(PRIORITY_KEYWORDS.map((word, index) => [word, index]));
+  unique.sort((a, b) => {
+    const pa = priorityIndex.has(a) ? priorityIndex.get(a) : 99;
+    const pb = priorityIndex.has(b) ? priorityIndex.get(b) : 99;
+    if(pa === pb) return 0;
+    return pa - pb;
+  });
+
+  const trimmed = unique.slice(0, maxWords);
+  if(trimmed.length < minWords) return trimmed;
+  return trimmed.slice(0, maxWords);
 }
 
 function makeAnchor(title, baseUrl, suffix, slugLimit){
