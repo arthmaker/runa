@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 function setStatus(type, msg){
   const el = $("tStatus");
+  if(!el) return;
   el.className = `status ${type}`;
   el.textContent = msg;
 }
@@ -255,7 +256,7 @@ function makeAnchor(title, baseUrl, suffix, slugLimit){
 
 function extractLinksFromAnchors(anchorLines){
   const out = [];
-  const re = /href\s*=\s*"([^"]+)"/i;
+  const re = /href\s*=\s*["']([^"']+)["']/i;
   for(const a of anchorLines){
     const m = re.exec(a);
     if(m && m[1]) out.push(m[1].trim());
@@ -264,15 +265,24 @@ function extractLinksFromAnchors(anchorLines){
 }
 
 function generateAnchors(){
-  const titles = lines($("tTitles").value);
+  const titleEl = $("tTitles");
+  const baseUrlEl = $("baseUrl");
+  const outAnchorEl = $("outAnchor");
+  if(!titleEl || !baseUrlEl || !outAnchorEl){
+    setStatus("bad", "ERROR: Form anchor tidak lengkap.");
+    return;
+  }
+  const titles = lines(titleEl.value);
   if(!titles.length){
     setStatus("bad", "ERROR: Daftar judul kosong.");
     return;
   }
 
-  const baseUrl = $("baseUrl").value.trim();
-  const suffix = $("suffix").value;
-  const slugLimit = $("slugLimit").value;
+  const baseUrl = baseUrlEl.value.trim();
+  const suffixEl = $("suffix");
+  const slugLimitEl = $("slugLimit");
+  const suffix = suffixEl ? suffixEl.value : "";
+  const slugLimit = slugLimitEl ? slugLimitEl.value : "";
 
   if(!baseUrl){
     setStatus("bad", "ERROR: Domain / Base URL kosong.");
@@ -284,37 +294,50 @@ function generateAnchors(){
     anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
   }
 
-  $("outAnchor").value = anchors.join("\n");
+  outAnchorEl.value = anchors.join("\n");
   setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
 }
 
 function extractLinks(){
-  const anchorList = lines($("outAnchor").value);
+  const outAnchorEl = $("outAnchor");
+  const outLinksEl = $("outLinks");
+  if(!outAnchorEl || !outLinksEl){
+    setStatus("bad", "ERROR: Output anchor tidak ditemukan.");
+    return;
+  }
+  const anchorList = lines(outAnchorEl.value);
   if(!anchorList.length){
     setStatus("bad", "ERROR: Output anchor masih kosong.");
     return;
   }
   const links = extractLinksFromAnchors(anchorList);
-  $("outLinks").value = links.join("\n");
+  outLinksEl.value = links.join("\n");
   setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
 }
 
-$("btnMakeAnchor").addEventListener("click", generateAnchors);
-$("btnExtractLink").addEventListener("click", extractLinks);
+const btnMakeAnchor = $("btnMakeAnchor");
+if(btnMakeAnchor) btnMakeAnchor.addEventListener("click", generateAnchors);
+const btnExtractLink = $("btnExtractLink");
+if(btnExtractLink) btnExtractLink.addEventListener("click", extractLinks);
 
-$("btnClear").addEventListener("click", ()=>{
-  $("tTitles").value = "";
-  $("outAnchor").value = "";
-  $("outLinks").value = "";
+const btnClear = $("btnClear");
+if(btnClear) btnClear.addEventListener("click", ()=>{
+  if($("tTitles")) $("tTitles").value = "";
+  if($("outAnchor")) $("outAnchor").value = "";
+  if($("outLinks")) $("outLinks").value = "";
   setStatus("idle", "Reset selesai.");
 });
 
-$("copyAnchor").addEventListener("click", async ()=>{
+const copyAnchor = $("copyAnchor");
+if(copyAnchor) copyAnchor.addEventListener("click", async ()=>{
+  if(!$("outAnchor")) return;
   await copyText($("outAnchor"));
   setStatus("ok", "Anchor text dicopy.");
 });
 
-$("copyLinks").addEventListener("click", async ()=>{
+const copyLinks = $("copyLinks");
+if(copyLinks) copyLinks.addEventListener("click", async ()=>{
+  if(!$("outLinks")) return;
   await copyText($("outLinks"));
   setStatus("ok", "Link dicopy.");
 });
