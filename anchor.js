@@ -84,165 +84,37 @@ function tokenize(s){
   return normalizeText(s).split(" ").filter(Boolean);
 }
 
-function uniq(arr){
-  return [...new Set(arr)];
-}
-
-// Keyword bank (user provided) + added Live RTP variants
-const KEYWORD_BANK_RAW = `
-momen awal tahun mahjongways
-pola legenda pgsoft
-pemicu kemenangan mahjongwins
-strategi mahjongways awal tahun
-bonus awal tahun mahjongways
-metode master kasino online
-pendekatan analitis mahjong ways
-strategi akhir tahun mahjongways
-optimalisasi bonus mahjongways
-rekomendasi game pgsoft
-panduan bermain mahjongways
-pola rahasia mahjongways
-nilai betting mahjongways
-pemain pemula kasino
-scatter hitam mahjongways
-pola master kasino
-kesalahan fatal mahjongways
-kemenangan spektakuler mahjongw ays
-server thailand mahjongways
-strategi bermain mahjongways
-teknik bermain mahjongways
-mahjongways kasino online
-klaim bonus mahjongways
-cara bermain mahjongways
-promo bonus mahjongways
-teknik menang mahjongways
-menang konsisten mahjongways
-pengaturan taruhan mahjongways
-teknik rahasia mahjongways
-strategi menang kasino online
-pola mahjongways terpercaya
-server kasino mahjongways
-pola mahjongways cuan
-metode pemain mahjongways senior
-pola resmi mahjongways
-bonus akhir tahun mahjongways
-tips pemula mahjongways
-pola betting mahjongways
-
-live rtp
-live rtp mahjongways
-live rtp kasino online
-rtp live mahjongways
-rtp live
-rtp mahjongways
-`;
-
-const KEYWORD_BANK = uniq(
-  KEYWORD_BANK_RAW
-    .split(/\r?\n/)
-    .map(s => normalizeText(s))
-    .filter(Boolean)
-).map(phrase => ({ phrase, tokens: tokenize(phrase) }));
-
-// Keep this light; keyword-bank matching is primary
 const STOPWORDS_ID = new Set([
   "yang","dan","di","ke","dari","pada","dalam","untuk","dengan","oleh","sebagai","atau",
-  "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian"
+  "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian",
+  "awal","tahun","fase","periode","terhadap","bagaimana","mengapa","apa","saat"
 ]);
 
-const TOKEN_BOOST = {
-  mahjongways: 140,
-  pgsoft: 100,
-  rtp: 95,
-  live: 35,
-  kasino: 85,
-  online: 70,
-  bonus: 70,
-  scatter: 80,
-  hitam: 75,
-  server: 70,
-  thailand: 75,
-  pola: 55,
-  menang: 45,
-  kemenangan: 40,
-  strategi: 35,
-  teknik: 35,
-  panduan: 40,
-  pemula: 40,
-  cuan: 45,
-  betting: 30,
-  taruhan: 30,
-  2026: 25,
-};
+const PRIORITY_KEYWORDS = [
+  "mahjongways","kasino","online","rtp","scatter","server","bonus","pola","jam","login"
+];
 
-function phraseMatchScore(titleSet, phraseTokens){
-  // score by overlap ratio + boosted tokens
-  let hit = 0;
-  let total = 0;
-  let boost = 0;
-  for(const t of phraseTokens){
-    if(t.length < 3) continue;
-    if(STOPWORDS_ID.has(t)) continue;
-    total += 1;
-    if(titleSet.has(t)) hit += 1;
-    boost += (TOKEN_BOOST[t] || 0);
-  }
-  if(total === 0) return 0;
-  const ratio = hit / total; // 0..1
-  return ratio * 1000 + boost * 0.5;
-}
-
-function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
+function extractAdaptiveKeywords(title, minWords = 3, maxWords = 3){
   const titleTokens = tokenize(title);
-  const titleSet = new Set(titleTokens);
+  const isWordAllowed = (word) => word.length >= 4 && !STOPWORDS_ID.has(word);
 
-  const rankedPhrases = KEYWORD_BANK
-    .map(p => ({...p, score: phraseMatchScore(titleSet, p.tokens)}))
-    .sort((a,b) => b.score - a.score);
-
-  const out = [];
-
-  // If title mentions mahjongways, ensure it exists
-  if(titleSet.has("mahjongways")) out.push("mahjongways");
-
-  // Prefer best matching phrase if it has reasonable match
-  const best = rankedPhrases[0];
-  if(best && best.score >= 650){
-    for(const t of best.tokens){
-      if(out.length >= maxWords) break;
-      if(t.length < 3) continue;
-      if(STOPWORDS_ID.has(t)) continue;
-      if(!out.includes(t)) out.push(t);
-    }
+  const filtered = titleTokens.filter(isWordAllowed);
+  const unique = [];
+  for(const word of filtered){
+    if(!unique.includes(word)) unique.push(word);
   }
 
-  // Fill the rest from title tokens by score
-  const scored = new Map();
-  for(const t of titleTokens){
-    if(t.length < 3) continue;
-    if(STOPWORDS_ID.has(t)) continue;
-    const score = 10 + (TOKEN_BOOST[t] || 0);
-    scored.set(t, (scored.get(t) || 0) + score);
-  }
+  const priorityIndex = new Map(PRIORITY_KEYWORDS.map((word, index) => [word, index]));
+  unique.sort((a, b) => {
+    const pa = priorityIndex.has(a) ? priorityIndex.get(a) : 99;
+    const pb = priorityIndex.has(b) ? priorityIndex.get(b) : 99;
+    if(pa === pb) return 0;
+    return pa - pb;
+  });
 
-  const rankedTokens = [...scored.entries()]
-    .sort((a,b) => b[1] - a[1])
-    .map(([t]) => t);
-
-  for(const t of rankedTokens){
-    if(out.length >= maxWords) break;
-    if(!out.includes(t)) out.push(t);
-  }
-
-  // Ensure min words
-  if(out.length < minWords){
-    for(const t of rankedTokens){
-      if(!out.includes(t)) out.push(t);
-      if(out.length >= minWords) break;
-    }
-  }
-
-  return out.slice(0, maxWords);
+  const trimmed = unique.slice(0, maxWords);
+  if(trimmed.length < minWords) return trimmed;
+  return trimmed.slice(0, maxWords);
 }
 
 function makeAnchor(title, baseUrl, suffix, slugLimit){
