@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 function setStatus(type, msg){
   const el = $("tStatus");
+  if(!el) return;
   el.className = `status ${type}`;
   el.textContent = msg;
 }
@@ -209,15 +210,21 @@ function extractLinksFromAnchors(anchorLines){
 }
 
 function generateAnchors(){
-  const titles = lines($("tTitles").value);
+  const titleEl = $("tTitles");
+  const baseUrlEl = $("baseUrl");
+  if(!titleEl || !baseUrlEl){
+    setStatus("bad", "ERROR: Form anchor tidak lengkap.");
+    return;
+  }
+  const titles = lines(titleEl.value);
   if(!titles.length){
     setStatus("bad", "ERROR: Daftar judul kosong.");
     return;
   }
 
-  const baseUrl = $("baseUrl").value.trim();
-  const suffix = $("suffix").value;
-  const slugLimit = $("slugLimit").value;
+  const baseUrl = baseUrlEl.value.trim();
+  const suffix = $("suffix")?.value;
+  const slugLimit = $("slugLimit")?.value;
 
   if(!baseUrl){
     setStatus("bad", "ERROR: Domain / Base URL kosong.");
@@ -234,7 +241,12 @@ function generateAnchors(){
 }
 
 function extractLinks(){
-  const anchorList = lines($("outAnchor").value);
+  const outAnchorEl = $("outAnchor");
+  if(!outAnchorEl){
+    setStatus("bad", "ERROR: Output anchor tidak ditemukan.");
+    return;
+  }
+  const anchorList = lines(outAnchorEl.value);
   if(!anchorList.length){
     setStatus("bad", "ERROR: Output anchor masih kosong.");
     return;
@@ -244,22 +256,24 @@ function extractLinks(){
   setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
 }
 
-$("btnMakeAnchor").addEventListener("click", generateAnchors);
-$("btnExtractLink").addEventListener("click", extractLinks);
+$("btnMakeAnchor")?.addEventListener("click", generateAnchors);
+$("btnExtractLink")?.addEventListener("click", extractLinks);
 
-$("btnClear").addEventListener("click", ()=>{
-  $("tTitles").value = "";
-  $("outAnchor").value = "";
-  $("outLinks").value = "";
+$("btnClear")?.addEventListener("click", ()=>{
+  if($("tTitles")) $("tTitles").value = "";
+  if($("outAnchor")) $("outAnchor").value = "";
+  if($("outLinks")) $("outLinks").value = "";
   setStatus("idle", "Reset selesai.");
 });
 
-$("copyAnchor").addEventListener("click", async ()=>{
+$("copyAnchor")?.addEventListener("click", async ()=>{
+  if(!$("outAnchor")) return;
   await copyText($("outAnchor"));
   setStatus("ok", "Anchor text dicopy.");
 });
 
-$("copyLinks").addEventListener("click", async ()=>{
+$("copyLinks")?.addEventListener("click", async ()=>{
+  if(!$("outLinks")) return;
   await copyText($("outLinks"));
   setStatus("ok", "Link dicopy.");
 });
