@@ -7,6 +7,14 @@ function setStatus(type, msg){
   el.textContent = msg;
 }
 
+function logDebug(message){
+  const logEl = $("debugLog");
+  if(!logEl) return;
+  const current = logEl.value ? `${logEl.value}\n` : "";
+  logEl.value = `${current}${message}`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
 function lines(text){
   return String(text || "")
     .split(/\r?\n/)
@@ -226,6 +234,7 @@ function generateAnchors(){
   const titles = lines(titleEl.value);
   if(!titles.length){
     setStatus("bad", "ERROR: Daftar judul kosong.");
+    logDebug("ERROR: Daftar judul kosong.");
     return;
   }
 
@@ -259,6 +268,7 @@ function extractLinks(){
   const anchorList = lines(outAnchorEl.value);
   if(!anchorList.length){
     setStatus("bad", "ERROR: Output anchor masih kosong.");
+    logDebug("ERROR: Output anchor masih kosong.");
     return;
   }
 }
@@ -286,3 +296,4 @@ $("copyLinks")?.addEventListener("click", async ()=>{
 });
 
 setStatus("idle", "Tempel daftar judul → Generate Anchor Text → Ambil Link dari Anchor.");
+logDebug("Log siap.");
