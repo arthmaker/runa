@@ -2,8 +2,17 @@ const $ = (id) => document.getElementById(id);
 
 function setStatus(type, msg){
   const el = $("tStatus");
+  if(!el) return;
   el.className = `status ${type}`;
   el.textContent = msg;
+}
+
+function logDebug(message){
+  const logEl = $("debugLog");
+  if(!logEl) return;
+  const current = logEl.value ? `${logEl.value}\n` : "";
+  logEl.value = `${current}${message}`;
+  logEl.scrollTop = logEl.scrollHeight;
 }
 
 function lines(text){
@@ -13,7 +22,6 @@ function lines(text){
     .filter(Boolean);
 }
 
-// ---------- Slug (limit 50 + tolerance +12: only to avoid cutting last word) ----------
 function slugify(s) {
   return (s || "")
     .toLowerCase()
@@ -34,11 +42,9 @@ function smartSlug(title, limit = 50, tolerance = 12) {
   if (!full) return "artikel";
   if (full.length <= limit) return full;
 
-  // cut on word boundary (dash)
   let cut = full.lastIndexOf("-", limit);
-  if (cut < 15) cut = limit; // if no dash or too short, fallback
+  if (cut < 15) cut = limit;
 
-  // extend only if next dash is within tolerance (finish last word)
   const nextDash = full.indexOf("-", limit);
   if (nextDash !== -1 && nextDash - limit <= tolerance) {
     cut = nextDash;
@@ -68,7 +74,16 @@ function copyText(el){
   return Promise.resolve();
 }
 
-// ---------- Keyword selection (adaptive 2–4 words) ----------
+const STOPWORDS_ID = new Set([
+  "di","ke","dari","dan","yang","untuk","dengan","pada","dalam","oleh",
+  "awal","tahun","fase","periode","menjadi","sebagai","terhadap",
+  "bagaimana","mengapa","apa","ketika","saat"
+]);
+
+const PRIORITY_KEYWORDS = [
+  "mahjongways","kasino","online","rtp","scatter","server","bonus","pola","jam","login"
+];
+
 function normalizeText(s) {
   return (s || "")
     .toLowerCase()
@@ -80,182 +95,44 @@ function normalizeText(s) {
     .trim();
 }
 
-function tokenize(s){
-  return normalizeText(s).split(" ").filter(Boolean);
-}
+function extractAdaptiveKeywords(title, limit = 3){
+  const words = normalizeText(title).split(" ").filter(Boolean);
+  const keywords = [];
 
-function uniq(arr){
-  return [...new Set(arr)];
-}
-
-// Keyword bank (user provided) + added Live RTP variants
-const KEYWORD_BANK_RAW = `
-momen awal tahun mahjongways
-pola legenda pgsoft
-pemicu kemenangan mahjongwins
-strategi mahjongways awal tahun
-bonus awal tahun mahjongways
-metode master kasino online
-pendekatan analitis mahjong ways
-strategi akhir tahun mahjongways
-optimalisasi bonus mahjongways
-rekomendasi game pgsoft
-panduan bermain mahjongways
-pola rahasia mahjongways
-nilai betting mahjongways
-pemain pemula kasino
-scatter hitam mahjongways
-pola master kasino
-kesalahan fatal mahjongways
-kemenangan spektakuler mahjongw ays
-server thailand mahjongways
-strategi bermain mahjongways
-teknik bermain mahjongways
-mahjongways kasino online
-klaim bonus mahjongways
-cara bermain mahjongways
-promo bonus mahjongways
-teknik menang mahjongways
-menang konsisten mahjongways
-pengaturan taruhan mahjongways
-teknik rahasia mahjongways
-strategi menang kasino online
-pola mahjongways terpercaya
-server kasino mahjongways
-pola mahjongways cuan
-metode pemain mahjongways senior
-pola resmi mahjongways
-bonus akhir tahun mahjongways
-tips pemula mahjongways
-pola betting mahjongways
-
-live rtp
-live rtp mahjongways
-live rtp kasino online
-rtp live mahjongways
-rtp live
-rtp mahjongways
-`;
-
-const KEYWORD_BANK = uniq(
-  KEYWORD_BANK_RAW
-    .split(/\r?\n/)
-    .map(s => normalizeText(s))
-    .filter(Boolean)
-).map(phrase => ({ phrase, tokens: tokenize(phrase) }));
-
-// Keep this light; keyword-bank matching is primary
-const STOPWORDS_ID = new Set([
-  "yang","dan","di","ke","dari","pada","dalam","untuk","dengan","oleh","sebagai","atau",
-  "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian"
-]);
-
-const TOKEN_BOOST = {
-  mahjongways: 140,
-  pgsoft: 100,
-  rtp: 95,
-  live: 35,
-  kasino: 85,
-  online: 70,
-  bonus: 70,
-  scatter: 80,
-  hitam: 75,
-  server: 70,
-  thailand: 75,
-  pola: 55,
-  menang: 45,
-  kemenangan: 40,
-  strategi: 35,
-  teknik: 35,
-  panduan: 40,
-  pemula: 40,
-  cuan: 45,
-  betting: 30,
-  taruhan: 30,
-  2026: 25,
-};
-
-function phraseMatchScore(titleSet, phraseTokens){
-  // score by overlap ratio + boosted tokens
-  let hit = 0;
-  let total = 0;
-  let boost = 0;
-  for(const t of phraseTokens){
-    if(t.length < 3) continue;
-    if(STOPWORDS_ID.has(t)) continue;
-    total += 1;
-    if(titleSet.has(t)) hit += 1;
-    boost += (TOKEN_BOOST[t] || 0);
-  }
-  if(total === 0) return 0;
-  const ratio = hit / total; // 0..1
-  return ratio * 1000 + boost * 0.5;
-}
-
-function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
-  const titleTokens = tokenize(title);
-  const titleSet = new Set(titleTokens);
-
-  const rankedPhrases = KEYWORD_BANK
-    .map(p => ({...p, score: phraseMatchScore(titleSet, p.tokens)}))
-    .sort((a,b) => b.score - a.score);
-
-  const out = [];
-
-  // If title mentions mahjongways, ensure it exists
-  if(titleSet.has("mahjongways")) out.push("mahjongways");
-
-  // Prefer best matching phrase if it has reasonable match
-  const best = rankedPhrases[0];
-  if(best && best.score >= 650){
-    for(const t of best.tokens){
-      if(out.length >= maxWords) break;
-      if(t.length < 3) continue;
-      if(STOPWORDS_ID.has(t)) continue;
-      if(!out.includes(t)) out.push(t);
-    }
+  for(const word of words){
+    if(word.length < 4) continue;
+    if(STOPWORDS_ID.has(word)) continue;
+    keywords.push(word);
   }
 
-  // Fill the rest from title tokens by score
-  const scored = new Map();
-  for(const t of titleTokens){
-    if(t.length < 3) continue;
-    if(STOPWORDS_ID.has(t)) continue;
-    const score = 10 + (TOKEN_BOOST[t] || 0);
-    scored.set(t, (scored.get(t) || 0) + score);
+  const priorityIndex = new Map(PRIORITY_KEYWORDS.map((word, index) => [word, index]));
+  keywords.sort((a, b) => {
+    const pa = priorityIndex.has(a) ? priorityIndex.get(a) : 99;
+    const pb = priorityIndex.has(b) ? priorityIndex.get(b) : 99;
+    if(pa === pb) return 0;
+    return pa - pb;
+  });
+
+  const unique = [];
+  for(const word of keywords){
+    if(!unique.includes(word)) unique.push(word);
   }
 
-  const rankedTokens = [...scored.entries()]
-    .sort((a,b) => b[1] - a[1])
-    .map(([t]) => t);
-
-  for(const t of rankedTokens){
-    if(out.length >= maxWords) break;
-    if(!out.includes(t)) out.push(t);
-  }
-
-  // Ensure min words
-  if(out.length < minWords){
-    for(const t of rankedTokens){
-      if(!out.includes(t)) out.push(t);
-      if(out.length >= minWords) break;
-    }
-  }
-
-  return out.slice(0, maxWords);
+  const trimmed = unique.slice(0, limit);
+  return trimmed.length ? trimmed : ["artikel"];
 }
 
 function makeAnchor(title, baseUrl, suffix, slugLimit){
   const limit = Number(slugLimit) || 50;
   const slug = smartSlug(title, limit, 12);
   const url = joinUrl(baseUrl, slug + (suffix || ""));
-  const keywords = extractAdaptiveKeywords(title, 2, 4).join(" ");
+  const keywords = extractAdaptiveKeywords(title, 3).join(" ");
   return { url, anchor: `<a href="${url}">${keywords}</a>` };
 }
 
 function extractLinksFromAnchors(anchorLines){
   const out = [];
-  const re = /href\s*=\s*"([^"]+)"/i;
+  const re = /href\s*=\s*["']([^"']+)["']/i;
   for(const a of anchorLines){
     const m = re.exec(a);
     if(m && m[1]) out.push(m[1].trim());
@@ -264,18 +141,31 @@ function extractLinksFromAnchors(anchorLines){
 }
 
 function generateAnchors(){
-  const titles = lines($("tTitles").value);
+  const titleEl = $("tTitles");
+  const baseUrlEl = $("baseUrl");
+  const outAnchorEl = $("outAnchor");
+  logDebug("Generate anchor: mulai.");
+  if(!titleEl || !baseUrlEl || !outAnchorEl){
+    setStatus("bad", "ERROR: Form anchor tidak lengkap.");
+    logDebug("ERROR: Form anchor tidak lengkap.");
+    return;
+  }
+  const titles = lines(titleEl.value);
   if(!titles.length){
     setStatus("bad", "ERROR: Daftar judul kosong.");
+    logDebug("ERROR: Daftar judul kosong.");
     return;
   }
 
-  const baseUrl = $("baseUrl").value.trim();
-  const suffix = $("suffix").value;
-  const slugLimit = $("slugLimit").value;
+  const baseUrl = baseUrlEl.value.trim();
+  const suffixEl = $("suffix");
+  const slugLimitEl = $("slugLimit");
+  const suffix = suffixEl ? suffixEl.value : "";
+  const slugLimit = slugLimitEl ? slugLimitEl.value : "";
 
   if(!baseUrl){
     setStatus("bad", "ERROR: Domain / Base URL kosong.");
+    logDebug("ERROR: Domain / Base URL kosong.");
     return;
   }
 
@@ -284,39 +174,59 @@ function generateAnchors(){
     anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
   }
 
-  $("outAnchor").value = anchors.join("\n");
+  outAnchorEl.value = anchors.join("\n");
   setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
+  logDebug(`Sukses: ${titles.length} anchor dibuat.`);
 }
 
 function extractLinks(){
-  const anchorList = lines($("outAnchor").value);
+  const outAnchorEl = $("outAnchor");
+  const outLinksEl = $("outLinks");
+  logDebug("Ambil link: mulai.");
+  if(!outAnchorEl || !outLinksEl){
+    setStatus("bad", "ERROR: Output anchor tidak ditemukan.");
+    logDebug("ERROR: Output anchor tidak ditemukan.");
+    return;
+  }
+  const anchorList = lines(outAnchorEl.value);
   if(!anchorList.length){
     setStatus("bad", "ERROR: Output anchor masih kosong.");
+    logDebug("ERROR: Output anchor masih kosong.");
     return;
   }
   const links = extractLinksFromAnchors(anchorList);
-  $("outLinks").value = links.join("\n");
+  outLinksEl.value = links.join("\n");
   setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
+  logDebug(`Sukses: ${links.length} link diambil.`);
 }
 
-$("btnMakeAnchor").addEventListener("click", generateAnchors);
-$("btnExtractLink").addEventListener("click", extractLinks);
+const btnMakeAnchor = $("btnMakeAnchor");
+if(btnMakeAnchor) btnMakeAnchor.addEventListener("click", generateAnchors);
+const btnExtractLink = $("btnExtractLink");
+if(btnExtractLink) btnExtractLink.addEventListener("click", extractLinks);
 
-$("btnClear").addEventListener("click", ()=>{
-  $("tTitles").value = "";
-  $("outAnchor").value = "";
-  $("outLinks").value = "";
+const btnClear = $("btnClear");
+if(btnClear) btnClear.addEventListener("click", ()=>{
+  if($("tTitles")) $("tTitles").value = "";
+  if($("outAnchor")) $("outAnchor").value = "";
+  if($("outLinks")) $("outLinks").value = "";
+  if($("debugLog")) $("debugLog").value = "";
   setStatus("idle", "Reset selesai.");
 });
 
-$("copyAnchor").addEventListener("click", async ()=>{
+const copyAnchor = $("copyAnchor");
+if(copyAnchor) copyAnchor.addEventListener("click", async ()=>{
+  if(!$("outAnchor")) return;
   await copyText($("outAnchor"));
   setStatus("ok", "Anchor text dicopy.");
 });
 
-$("copyLinks").addEventListener("click", async ()=>{
+const copyLinks = $("copyLinks");
+if(copyLinks) copyLinks.addEventListener("click", async ()=>{
+  if(!$("outLinks")) return;
   await copyText($("outLinks"));
   setStatus("ok", "Link dicopy.");
 });
 
 setStatus("idle", "Tempel daftar judul → Generate Anchor Text → Ambil Link dari Anchor.");
+logDebug("Log siap.");
