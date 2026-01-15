@@ -88,26 +88,94 @@ function tokenize(s){
 const STOPWORDS_ID = new Set([
   "yang","dan","di","ke","dari","pada","dalam","untuk","dengan","oleh","sebagai","atau",
   "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian",
-  "awal","tahun","fase","periode","terhadap","bagaimana","mengapa","apa","saat"
+  "awal","tahun","pemain","mulai","membantu","menandai","digunakan","membuka","akses"
 ]);
 
-const PRIORITY_KEYWORDS = [
-  "mahjongways","kasino","online","rtp","scatter","server","bonus","pola","jam","login"
-];
+const TOKEN_BOOST = {
+  mahjongways: 140,
+  pgsoft: 100,
+  rtp: 95,
+  live: 35,
+  kasino: 85,
+  online: 70,
+  ai: 110,
+  prediktif: 120,
+  analitik: 110,
+  lanjutan: 90,
+  machine: 100,
+  learning: 100,
+  big: 90,
+  data: 100,
+  dashboard: 100,
+  real: 80,
+  time: 80,
+  teknologi: 70,
+  bonus: 70,
+  scatter: 80,
+  hitam: 75,
+  server: 70,
+  thailand: 75,
+  pola: 55,
+  menang: 45,
+  kemenangan: 40,
+  strategi: 35,
+  teknik: 35,
+  panduan: 40,
+  pemula: 40,
+  cuan: 45,
+  betting: 30,
+  taruhan: 30,
+  2026: 25,
+};
 
-function extractAdaptiveKeywords(title, minWords = 3, maxWords = 3){
+function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
   const titleTokens = tokenize(title);
-  const primaryMinLength = 3;
-  const fallbackMinLength = 2;
-  const isWordAllowed = (word, minLength) => word.length >= minLength && !STOPWORDS_ID.has(word);
+  const titleSet = new Set(titleTokens);
 
-  let filtered = titleTokens.filter((word) => isWordAllowed(word, primaryMinLength));
-  if(filtered.length === 0){
-    filtered = titleTokens.filter((word) => isWordAllowed(word, fallbackMinLength));
+  const isWordAllowed = (word) => word.length >= 2 && !STOPWORDS_ID.has(word);
+
+  const tokenScore = (word, index) => {
+    const boost = TOKEN_BOOST[word] || 0;
+    const position = Math.max(0, 20 - index);
+    return 10 + boost + position;
+  };
+
+  const rankedTokens = titleTokens
+    .map((word, index) => ({ word, score: tokenScore(word, index) }))
+    .filter(({ word }) => isWordAllowed(word))
+    .sort((a, b) => b.score - a.score)
+    .map(({ word }) => word);
+
+  let bestPhrase = [];
+  let bestScore = -1;
+
+  for(let i = 0; i < titleTokens.length - 1; i += 1){
+    const first = titleTokens[i];
+    const second = titleTokens[i + 1];
+    if(!isWordAllowed(first) || !isWordAllowed(second)) continue;
+    const score = tokenScore(first, i) + tokenScore(second, i + 1);
+    if(score > bestScore){
+      bestScore = score;
+      bestPhrase = [first, second];
+    }
   }
-  const unique = [];
-  for(const word of filtered){
-    if(!unique.includes(word)) unique.push(word);
+
+  const out = bestPhrase.length ? [...bestPhrase] : [];
+
+  if(titleSet.has("mahjongways") && !out.includes("mahjongways")){
+    out.push("mahjongways");
+  }
+
+  for(const t of rankedTokens){
+    if(out.length >= maxWords) break;
+    if(!out.includes(t)) out.push(t);
+  }
+
+  if(out.length < minWords){
+    for(const t of rankedTokens){
+      if(!out.includes(t)) out.push(t);
+      if(out.length >= minWords) break;
+    }
   }
 
   const priorityIndex = new Map(PRIORITY_KEYWORDS.map((word, index) => [word, index]));
@@ -119,13 +187,8 @@ function extractAdaptiveKeywords(title, minWords = 3, maxWords = 3){
   });
 
   const trimmed = unique.slice(0, maxWords);
-  if(trimmed.length >= minWords) return trimmed.slice(0, maxWords);
-
-  const fallback = titleTokens
-    .filter((word) => isWordAllowed(word, fallbackMinLength))
-    .filter((word, index, arr) => arr.indexOf(word) === index)
-    .slice(0, maxWords);
-  return fallback.length ? fallback : ["artikel"];
+  if(trimmed.length < minWords) return trimmed;
+  return trimmed.slice(0, maxWords);
 }
 
 function makeAnchor(title, baseUrl, suffix, slugLimit){
@@ -147,23 +210,21 @@ function extractLinksFromAnchors(anchorLines){
 }
 
 function generateAnchors(){
-  try{
-    const titleEl = $("tTitles");
-    const baseUrlEl = $("baseUrl");
-    const outAnchorEl = $("outAnchor");
-    if(!titleEl || !baseUrlEl || !outAnchorEl){
-      setStatus("bad", "ERROR: Form anchor tidak lengkap.");
-      return;
-    }
-    const titles = lines(titleEl.value);
-    if(!titles.length){
-      setStatus("bad", "ERROR: Daftar judul kosong.");
-      return;
-    }
+  const titleEl = $("tTitles");
+  const baseUrlEl = $("baseUrl");
+  if(!titleEl || !baseUrlEl){
+    setStatus("bad", "ERROR: Form anchor tidak lengkap.");
+    return;
+  }
+  const titles = lines(titleEl.value);
+  if(!titles.length){
+    setStatus("bad", "ERROR: Daftar judul kosong.");
+    return;
+  }
 
-    const baseUrl = baseUrlEl.value.trim();
-    const suffix = $("suffix")?.value;
-    const slugLimit = $("slugLimit")?.value;
+  const baseUrl = baseUrlEl.value.trim();
+  const suffix = $("suffix")?.value;
+  const slugLimit = $("slugLimit")?.value;
 
     if(!baseUrl){
       setStatus("bad", "ERROR: Domain / Base URL kosong.");
@@ -183,23 +244,15 @@ function generateAnchors(){
 }
 
 function extractLinks(){
-  try{
-    const outAnchorEl = $("outAnchor");
-    const outLinksEl = $("outLinks");
-    if(!outAnchorEl || !outLinksEl){
-      setStatus("bad", "ERROR: Output anchor tidak ditemukan.");
-      return;
-    }
-    const anchorList = lines(outAnchorEl.value);
-    if(!anchorList.length){
-      setStatus("bad", "ERROR: Output anchor masih kosong.");
-      return;
-    }
-    const links = extractLinksFromAnchors(anchorList);
-    outLinksEl.value = links.join("\n");
-    setStatus("ok", `Sukses: ${links.length} link diambil dari href.`);
-  }catch (err){
-    setStatus("bad", `ERROR: ${err?.message || "Gagal ambil link."}`);
+  const outAnchorEl = $("outAnchor");
+  if(!outAnchorEl){
+    setStatus("bad", "ERROR: Output anchor tidak ditemukan.");
+    return;
+  }
+  const anchorList = lines(outAnchorEl.value);
+  if(!anchorList.length){
+    setStatus("bad", "ERROR: Output anchor masih kosong.");
+    return;
   }
 }
 
