@@ -14,7 +14,6 @@ function lines(text){
     .filter(Boolean);
 }
 
-// ---------- Slug (limit 50 + tolerance +12: only to avoid cutting last word) ----------
 function slugify(s) {
   return (s || "")
     .toLowerCase()
@@ -35,11 +34,9 @@ function smartSlug(title, limit = 50, tolerance = 12) {
   if (!full) return "artikel";
   if (full.length <= limit) return full;
 
-  // cut on word boundary (dash)
   let cut = full.lastIndexOf("-", limit);
-  if (cut < 15) cut = limit; // if no dash or too short, fallback
+  if (cut < 15) cut = limit;
 
-  // extend only if next dash is within tolerance (finish last word)
   const nextDash = full.indexOf("-", limit);
   if (nextDash !== -1 && nextDash - limit <= tolerance) {
     cut = nextDash;
@@ -69,7 +66,16 @@ function copyText(el){
   return Promise.resolve();
 }
 
-// ---------- Keyword selection (adaptive 2–4 words) ----------
+const STOPWORDS_ID = new Set([
+  "di","ke","dari","dan","yang","untuk","dengan","pada","dalam","oleh",
+  "awal","tahun","fase","periode","menjadi","sebagai","terhadap",
+  "bagaimana","mengapa","apa","ketika","saat"
+]);
+
+const PRIORITY_KEYWORDS = [
+  "mahjongways","kasino","online","rtp","scatter","server","bonus","pola","jam","login"
+];
+
 function normalizeText(s) {
   return (s || "")
     .toLowerCase()
@@ -166,9 +172,10 @@ function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
     out.push("mahjongways");
   }
 
-  for(const t of rankedTokens){
-    if(out.length >= maxWords) break;
-    if(!out.includes(t)) out.push(t);
+  for(const word of words){
+    if(word.length < 4) continue;
+    if(STOPWORDS_ID.has(word)) continue;
+    keywords.push(word);
   }
 
   if(out.length < minWords){
