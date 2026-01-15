@@ -194,7 +194,7 @@ function makeAnchor(title, baseUrl, suffix, slugLimit){
   const limit = Number(slugLimit) || 50;
   const slug = smartSlug(title, limit, 12);
   const url = joinUrl(baseUrl, slug + (suffix || ""));
-  const keywords = extractAdaptiveKeywords(title, 2, 4).join(" ");
+  const keywords = extractAdaptiveKeywords(title, 2, 4).join(" ") || "artikel";
   return { url, anchor: `<a href="${url}">${keywords}</a>` };
 }
 
