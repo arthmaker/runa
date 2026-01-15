@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tools Anchor & Link • RUNA</title>
+  <title>Tools Anchor, Link & Gambar • RUNA</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
@@ -14,8 +14,8 @@
       <div class="brand">
         <div class="logo" aria-hidden="true">◎</div>
         <div>
-          <h1>Tools Anchor &amp; Link</h1>
-          <p>Generate anchor text dari daftar judul, lalu ambil link (href) dari hasil anchor.</p>
+          <h1>Tools Anchor, Link &amp; Gambar</h1>
+          <p>Generate anchor text dari daftar judul, ambil link (href), dan susun link gambar berurutan.</p>
         </div>
       </div>
 
@@ -89,6 +89,53 @@
         </div>
       </section>
 
+      <section class="card">
+        <div class="card-head">
+          <h2>3) Link Gambar</h2>
+          <span class="pill">3 Box</span>
+        </div>
+
+        <div class="three">
+          <div class="field">
+            <label>Box 1: Domain / Folder</label>
+            <input id="imgDomain" placeholder="https://gomoonchild.github.io/berita/" />
+            <div class="help">Pastikan diakhiri <code>/</code> (folder).</div>
+          </div>
+          <div class="field">
+            <label>Box 2: Nama File (tanpa nomor)</label>
+            <input id="imgBaseName" placeholder="mahjongways-gameko" />
+            <div class="help">Nomor 1–10 akan ditambahkan otomatis.</div>
+          </div>
+          <div class="field">
+            <label>Box 3: Format</label>
+            <input id="imgExt" placeholder=".webp" />
+            <div class="help">Contoh: <code>.webp</code>, <code>.jpg</code>, <code>.png</code></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnGenerate" class="btn primary" type="button">Generate 10 Link</button>
+          <button id="btnReset" class="btn danger" type="button">Reset</button>
+        </div>
+
+        <div id="imgStatus" class="status idle" style="margin-top:12px;">Isi 3 box → klik Generate.</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>4) Output Gambar</h2>
+          <span class="pill">Copy</span>
+        </div>
+
+        <div class="field">
+          <label>Hasil Link Gambar (10 baris)</label>
+          <textarea id="out" placeholder="Hasil akan muncul di sini"></textarea>
+          <div class="actions" style="margin-top:8px;">
+            <button class="btn" id="btnCopy" type="button">Copy Hasil</button>
+          </div>
+        </div>
+      </section>
+
       <section class="card full">
         <div class="card-head">
           <h2>Tips</h2>
@@ -111,5 +158,6 @@
   </div>
 
   <script src="./anchor.js"></script>
+  <script src="./image.js"></script>
 </body>
 </html>
