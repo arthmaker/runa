@@ -80,21 +80,111 @@
     .split(" ")
     .filter(Boolean);
 
-  const pickTopKeywords = (titles, k = 2) => {
-    const freq = new Map();
-    for(const t of titles){
-      for(const w of normalizeTokens(t)){
-        if(w === "mahjongways") continue;
-        if(w.length < 3) continue;
-        if(STOPWORDS.has(w)) continue;
-        freq.set(w, (freq.get(w) || 0) + 1);
+  // ===== Anchor keyword logic (Dominan + Aksi/Fungsi + Konteks Pengguna) =====
+  // 1) Dominan: MahjongWays / RTP Live / Super Scatter
+  // 2) Aksi/Fungsi: Strategi / Bonus / Pola / Data
+  // 3) Konteks: Pemula / Pemain / Modal / Waktu
+
+  const hasPhrase = (tokens, phraseTokens) => {
+    if(!phraseTokens.length) return false;
+    for(let i=0; i<=tokens.length - phraseTokens.length; i++){
+      let ok = true;
+      for(let j=0; j<phraseTokens.length; j++){
+        if(tokens[i+j] !== phraseTokens[j]){ ok = false; break; }
+      }
+      if(ok) return true;
+    }
+    return false;
+  };
+
+  const detectDominant = (tokens) => {
+    const hasMW = tokens.includes("mahjongways");
+    const hasRtpLive = hasPhrase(tokens, ["rtp","live"]) || (tokens.includes("rtp") && tokens.includes("live"));
+    const hasSuperScatter = hasPhrase(tokens, ["super","scatter"]) || (tokens.includes("super") && tokens.includes("scatter"));
+
+    if(hasMW) return "MahjongWays";
+    if(hasRtpLive) return "RTP Live";
+    if(hasSuperScatter) return "Super Scatter";
+    return "";
+  };
+
+  const ACTION_MAP = [
+    { out: "Strategi", keys: ["strategi","teknik","panduan","taktik","cara"] },
+    { out: "Bonus", keys: ["bonus","member","new","freespin","free","spin"] },
+    { out: "Pola", keys: ["pola","ritme","naik","turun","betting","taruhan","spin"] },
+    { out: "Data", keys: ["data","analisis","statistik","temuan","laporan","evaluasi"] },
+  ];
+
+  const CONTEXT_MAP = [
+    { out: "Pemula", keys: ["pemula","newbie","baru"] },
+    { out: "Pemain", keys: ["pemain","komunitas","member","player"] },
+    { out: "Modal", keys: ["modal","saldo","budget","bankroll"] },
+    { out: "Waktu", keys: ["waktu","jam","periode","awal","tahun","hari","minggu","bulan"] },
+  ];
+
+  const pickFirstMatch = (tokens, maps) => {
+    for(const t of tokens){
+      for(const m of maps){
+        if(m.keys.includes(t)) return m.out;
       }
     }
-    const ranked = [...freq.entries()]
-      .sort((a,b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
-      .slice(0, k)
-      .map(([w]) => w);
-    return ranked;
+    return "";
+  };
+
+  const computeGlobalDefaults = (titles) => {
+    const dom = { "MahjongWays": 0, "RTP Live": 0, "Super Scatter": 0 };
+    const act = new Map();
+    const ctx = new Map();
+
+    const add = (map, key) => map.set(key, (map.get(key) || 0) + 1);
+
+    for(const title of titles){
+      const tokens = normalizeTokens(title);
+
+      const d = detectDominant(tokens);
+      if(d) dom[d] += 1;
+
+      const a = pickFirstMatch(tokens, ACTION_MAP);
+      if(a) add(act, a);
+
+      const c = pickFirstMatch(tokens, CONTEXT_MAP);
+      if(c) add(ctx, c);
+    }
+
+    const pickTop = (objOrMap, order) => {
+      if(objOrMap instanceof Map){
+        const ranked = [...objOrMap.entries()].sort((a,b) => (b[1]-a[1]) || a[0].localeCompare(b[0]));
+        return ranked[0]?.[0] || "";
+      }
+      // object
+      let best = "";
+      let bestN = -1;
+      for(const k of order){
+        const n = objOrMap[k] || 0;
+        if(n > bestN){ bestN = n; best = k; }
+      }
+      return best;
+    };
+
+    const domDefault = pickTop(dom, ["MahjongWays","RTP Live","Super Scatter"]);
+    const actDefault = pickTop(act);
+    const ctxDefault = pickTop(ctx);
+
+    return {
+      domDefault: domDefault || "MahjongWays",
+      actDefault: actDefault || "Strategi",
+      ctxDefault: ctxDefault || "Pemain",
+    };
+  };
+
+  const buildAnchorKeywords = (title, defaults) => {
+    const tokens = normalizeTokens(title);
+
+    const dominant = detectDominant(tokens) || defaults.domDefault;
+    const action = pickFirstMatch(tokens, ACTION_MAP) || defaults.actDefault;
+    const context = pickFirstMatch(tokens, CONTEXT_MAP) || defaults.ctxDefault;
+
+    return [dominant, action, context].filter(Boolean).join(" ");
   };
 
   const copyText = (el) => {
@@ -157,14 +247,11 @@
     el.textContent = msg;
   };
 
-  const setKwHint = (kw1, kw2) => {
+  const setKwHint = (defaults) => {
     const el = getEl("kwHint");
     if(!el) return;
-    if(!kw1 && !kw2){
-      el.textContent = "";
-      return;
-    }
-    el.innerHTML = `Keyword global terpilih (selain <strong>MahjongWays</strong>): <strong>${kw1 || "-"}</strong> &nbsp;•&nbsp; <strong>${kw2 || "-"}</strong>`;
+    if(!defaults){ el.textContent = ""; return; }
+    el.innerHTML = `Default keyword (fallback) dari daftar judul: <strong>${defaults.domDefault}</strong> &nbsp;•&nbsp; <strong>${defaults.actDefault}</strong> &nbsp;•&nbsp; <strong>${defaults.ctxDefault}</strong>`;
   };
 
   const generateLinksAndAnchors = (mode = "links") => {
@@ -183,17 +270,16 @@
 
     saveNow();
 
-    const [kw1, kw2] = pickTopKeywords(titles, 2);
-    setKwHint(kw1, kw2);
+    const defaults = computeGlobalDefaults(titles);
+    setKwHint(defaults);
 
     const links = titles.map(t => joinUrl(domain, smartSlug(t, 50, 12) + ".html"));
     if(getEl("outLinks")) getEl("outLinks").value = links.join("\n");
 
-    const anchorText = (link) => {
-      const parts = ["MahjongWays", kw1, kw2].filter(Boolean);
-      return `<a href="${link}">${parts.join(" ")}</a>`;
-    };
-    const anchors = links.map(anchorText);
+    const anchors = links.map((link, i) => {
+      const kw = buildAnchorKeywords(titles[i], defaults);
+      return `<a href="${link}">${kw}</a>`;
+    });
     if(getEl("outAnchors")) getEl("outAnchors").value = anchors.join("\n");
 
     if(mode === "links"){
@@ -213,7 +299,7 @@
     if(getEl("outAnchors")) getEl("outAnchors").value = "";
     localStorage.removeItem(KEY_LINK_DOMAIN);
     localStorage.removeItem(KEY_LINK_TITLES);
-    setKwHint("", "");
+    setKwHint(null);
     setLinkStatus("idle", "Reset selesai.");
   });
 
