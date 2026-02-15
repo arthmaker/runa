@@ -74,12 +74,6 @@ function copyText(el){
   return Promise.resolve();
 }
 
-const STOPWORDS_ID = new Set([
-  "di","ke","dari","dan","yang","untuk","dengan","pada","dalam","oleh",
-  "awal","tahun","fase","periode","menjadi","sebagai","terhadap",
-  "bagaimana","mengapa","apa","ketika","saat"
-]);
-
 const PRIORITY_KEYWORDS = [
   "mahjongways","kasino","online","rtp","scatter","server","bonus","pola","jam","login"
 ];
@@ -99,7 +93,7 @@ function tokenize(s){
   return normalizeText(s).split(" ").filter(Boolean);
 }
 
-const STOPWORDS_ID = new Set([
+const STOPWORDS_LOCAL = new Set([
   "yang","dan","di","ke","dari","pada","dalam","untuk","dengan","oleh","sebagai","atau",
   "ini","itu","para","lebih","cara","ketika","angka","memaknai","menjadi","bagian",
   "awal","tahun","pemain","mulai","membantu","menandai","digunakan","membuka","akses"
@@ -142,68 +136,175 @@ const TOKEN_BOOST = {
   2026: 25,
 };
 
-function extractAdaptiveKeywords(title, minWords = 2, maxWords = 4){
-  const titleTokens = tokenize(title);
-  const titleSet = new Set(titleTokens);
+function extractAdaptiveKeywords(title, count = 3) {
+  // Menghasilkan 3 keyword utama yang adaptif (tidak monoton seperti "mahjongways kasino online")
+  // Prinsip: ambil 1 kata inti (topik), 1 kata pemicu/parameter (mis. scatter/rtp/server/bet), 1 kata hasil/tujuan (maxwin/profit/modal/dll)
+  // Output: array string panjang = count
 
-  const isWordAllowed = (word) => word.length >= 2 && !STOPWORDS_ID.has(word);
+  const STOPWORDS2 = new Set([
+    "yang","dan","di","ke","dari","untuk","pada","dengan","tanpa","agar","sebagai","dalam","oleh","atau",
+    "ini","itu","terhadap","guna","demi","lebih","paling","secara","khas","khusus","versi","sisi","cara",
+    "mengenai","tentang","atas","bagi","para","sebuah","hingga","kapan","bagaimana","mengapa","apa",
+    "pemula","pemain","member","pro","profesional","master","legenda","kasino","online" // sengaja: "online" stopword
+  ]);
 
-  const tokenScore = (word, index) => {
-    const boost = TOKEN_BOOST[word] || 0;
-    const position = Math.max(0, 20 - index);
-    return 10 + boost + position;
-  };
+  const GENERIC = new Set([
+    "analisis","kajian","studi","pembahasan","mengulas","membedah","menyoroti","evaluasi","pendekatan",
+    "framework","rangkuman","panduan","strategi","metode","teknik","tinjauan","penjelasan","sistematis",
+    "objektif","teknis","profesional","rasional","terukur","adaptif","praktis"
+  ]);
 
-  const rankedTokens = titleTokens
-    .map((word, index) => ({ word, score: tokenScore(word, index) }))
-    .filter(({ word }) => isWordAllowed(word))
-    .sort((a, b) => b.score - a.score)
-    .map(({ word }) => word);
+  // Kata yang biasanya bernilai informasi tinggi di niche MahjongWays
+  const PRIORITY = new Map([
+    ["mahjongways", 8],
+    ["scatter", 10], ["hitam", 10], ["full", 7], ["super", 6], ["golden", 6],
+    ["rtp", 9], ["live", 4], ["volatilitas", 8], ["rng", 8],
+    ["server", 9], ["thailand", 6], ["vietnam", 6], ["kamboja", 6], ["srilanka", 6],
+    ["jam", 7], ["reset", 8], ["peak", 6], ["hour", 6], ["time", 5], ["window", 5],
+    ["bet", 9], ["betting", 8], ["modal", 9], ["saldo", 8], ["drawdown", 9],
+    ["stop", 7], ["loss", 8], ["take", 7], ["profit", 8],
+    ["bonus", 8], ["cashback", 8], ["rebate", 8], ["withdraw", 8], ["wagering", 8], ["rollover", 8],
+    ["maxwin", 10], ["maximal", 6], ["win", 6], ["x100", 7], ["x1000", 9]
+  ]);
 
-  let bestPhrase = [];
-  let bestScore = -1;
+  const txt = (title || "").toString().trim();
+  if (!txt) return ["mahjongways", "scatter", "hitam"].slice(0, count);
 
-  for(let i = 0; i < titleTokens.length - 1; i += 1){
-    const first = titleTokens[i];
-    const second = titleTokens[i + 1];
-    if(!isWordAllowed(first) || !isWordAllowed(second)) continue;
-    const score = tokenScore(first, i) + tokenScore(second, i + 1);
-    if(score > bestScore){
-      bestScore = score;
-      bestPhrase = [first, second];
-    }
-  }
+  // Normalisasi
+  const normalized = txt
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/\(\)/g, " ")
+    .replace(/[^a-z0-9\s-]/g, " ")   // buang tanda baca kecuali dash
+    .replace(/\s+/g, " ")
+    .trim();
 
-  const out = bestPhrase.length ? [...bestPhrase] : [];
+  // Tangkap multiplier seperti 5x, x1000, 4x, 10 menit, dll
+  const mult = [];
+  for (const m of normalized.matchAll(/\b(\d{1,4}x|x\d{1,4})\b/g)) mult.push(m[1]);
+  for (const m of normalized.matchAll(/\b(\d{1,3})\s*menit\b/g)) mult.push(`${m[1]}menit`);
+  for (const m of normalized.matchAll(/\b(\d{1,4})\s*spin\b/g)) mult.push(`${m[1]}spin`);
 
-  if(titleSet.has("mahjongways") && !out.includes("mahjongways")){
-    out.push("mahjongways");
-  }
+  const rawTokens = normalized
+    .split(/\s+/)
+    .filter(Boolean);
 
-  for(const word of words){
-    if(word.length < 4) continue;
-    if(STOPWORDS_ID.has(word)) continue;
-    keywords.push(word);
-  }
-
-  if(out.length < minWords){
-    for(const t of rankedTokens){
-      if(!out.includes(t)) out.push(t);
-      if(out.length >= minWords) break;
-    }
-  }
-
-  const priorityIndex = new Map(PRIORITY_KEYWORDS.map((word, index) => [word, index]));
-  unique.sort((a, b) => {
-    const pa = priorityIndex.has(a) ? priorityIndex.get(a) : 99;
-    const pb = priorityIndex.has(b) ? priorityIndex.get(b) : 99;
-    if(pa === pb) return 0;
-    return pa - pb;
+  // Token kandidat (hapus stopword, tapi biarkan "mahjongways")
+  const tokens = rawTokens.filter(t => {
+    if (t === "mahjongways") return true;
+    if (STOPWORDS2.has(t)) return false;
+    if (t.length < 3) return false;
+    return true;
   });
 
-  const trimmed = unique.slice(0, maxWords);
-  if(trimmed.length < minWords) return trimmed;
-  return trimmed.slice(0, maxWords);
+  // Scoring token
+  const scores = new Map();
+  const seen = new Set();
+
+  function addScore(tok, s) {
+    if (!tok) return;
+    scores.set(tok, (scores.get(tok) || 0) + s);
+  }
+
+  tokens.forEach((t, idx) => {
+    if (seen.has(t)) {
+      addScore(t, 1); // repetisi sedikit menambah bobot
+      return;
+    }
+    seen.add(t);
+
+    // basis: posisi awal lebih penting
+    const posBoost = Math.max(0, 6 - idx); // 6..0
+    addScore(t, 2 + posBoost);
+
+    // panjang kata (lebih spesifik biasanya lebih panjang)
+    addScore(t, Math.min(6, Math.max(0, t.length - 4)));
+
+    // prioritas niche
+    if (PRIORITY.has(t)) addScore(t, PRIORITY.get(t));
+
+    // penalti kata generik
+    if (GENERIC.has(t)) addScore(t, -6);
+
+    // angka/multiplier
+    if (/^(\d{1,4}x|x\d{1,4}|\d{1,4}spin|\d{1,3}menit)$/.test(t)) addScore(t, 7);
+  });
+
+  // Tambahkan multiplier yang terdeteksi (kalau tidak ada sebagai token utama)
+  mult.forEach(m => addScore(m, 8));
+
+  // Kandidat bigram penting: "scatter hitam", "rtp live", "jam reset", "server vietnam"
+  const bigrams = [];
+  for (let i = 0; i < rawTokens.length - 1; i++) {
+    const a = rawTokens[i], b = rawTokens[i + 1];
+    if (STOPWORDS2.has(a) || STOPWORDS2.has(b)) continue;
+    const bg = `${a} ${b}`;
+    // bigram prioritas
+    if (
+      bg === "scatter hitam" ||
+      bg === "rtp live" ||
+      bg === "jam reset" ||
+      bg.startsWith("server ")
+    ) {
+      bigrams.push(bg);
+    }
+  }
+
+  // Seleksi 3 keyword: aturan anti-monoton
+  // 1) Usahakan selalu memasukkan "mahjongways" jika ada di judul
+  const picks = [];
+
+  function pickToken(filterFn) {
+    const sorted = [...scores.entries()]
+      .filter(([t, s]) => s > 0 && filterFn(t, s))
+      .sort((a, b) => b[1] - a[1]);
+
+    for (const [t] of sorted) {
+      // hindari duplikasi semantik sederhana (mis. maxwin vs maximal) dan kata generik
+      if (picks.includes(t)) continue;
+      if (GENERIC.has(t)) continue;
+      picks.push(t);
+      break;
+    }
+  }
+
+  // Slot 1: mahjongways (jika ada), kalau tidak ambil top token non-generic
+  if (normalized.includes("mahjongways")) picks.push("mahjongways");
+
+  // Slot 2: pemicu/parameter utama (scatter/rtp/server/bet/jam/bonus/rng/volatilitas)
+  pickToken(t => ["scatter","hitam","rtp","server","bet","betting","jam","reset","bonus","cashback","rebate","wagering","rollover","rng","volatilitas","drawdown","withdraw","maxwin"].includes(t) || /^(\d{1,4}x|x\d{1,4})$/.test(t));
+
+  // Slot 3: hasil/tujuan (maxwin/profit/modal/withdraw/roi/drawdown/stoploss/takeprofit)
+  pickToken(t => ["maxwin","profit","modal","saldo","withdraw","roi","drawdown","stop","loss","take","win","maximal"].includes(t) || /^(\d{1,4}spin|\d{1,3}menit)$/.test(t));
+
+  // Isi sisa slot dengan token skor tertinggi (non-generic, bukan stopword)
+  while (picks.length < count) {
+    pickToken(() => true);
+    if (picks.length === 0) break;
+    // jika tidak bertambah (karena filter), hentikan
+    if (picks.length >= count) break;
+    const before = picks.length;
+    if (before === picks.length) break;
+  }
+
+  // Jika masih kurang, gunakan bigram yang relevan (dibersihkan jadi 2 kata tapi sebagai satu keyword string)
+  if (picks.length < count && bigrams.length) {
+    for (const bg of bigrams) {
+      if (picks.includes(bg)) continue;
+      picks.push(bg);
+      if (picks.length >= count) break;
+    }
+  }
+
+  // Final fallback
+  const fallback = ["mahjongways", "scatter", "hitam"];
+  while (picks.length < count) {
+    const v = fallback[picks.length] || fallback[fallback.length - 1];
+    if (!picks.includes(v)) picks.push(v);
+    else picks.push(v + "1");
+  }
+
+  return picks.slice(0, count);
 }
 
 function makeAnchor(title, baseUrl, suffix, slugLimit){
@@ -227,10 +328,13 @@ function extractLinksFromAnchors(anchorLines){
 function generateAnchors(){
   const titleEl = $("tTitles");
   const baseUrlEl = $("baseUrl");
-  if(!titleEl || !baseUrlEl){
+  const outAnchorEl = $("outAnchor");
+
+  if(!titleEl || !baseUrlEl || !outAnchorEl){
     setStatus("bad", "ERROR: Form anchor tidak lengkap.");
     return;
   }
+
   const titles = lines(titleEl.value);
   if(!titles.length){
     setStatus("bad", "ERROR: Daftar judul kosong.");
@@ -238,23 +342,20 @@ function generateAnchors(){
     return;
   }
 
-  const baseUrl = baseUrlEl.value.trim();
-  const suffix = $("suffix")?.value;
-  const slugLimit = $("slugLimit")?.value;
+  try{
+    const baseUrl = baseUrlEl.value.trim();
+    const suffix = $("suffix")?.value;
+    const slugLimit = $("slugLimit")?.value;
 
     if(!baseUrl){
       setStatus("bad", "ERROR: Domain / Base URL kosong.");
       return;
     }
 
-    const anchors = [];
-    for(const t of titles){
-      anchors.push(makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
-    }
-
+    const anchors = titles.map(t => makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
     outAnchorEl.value = anchors.join("\n");
     setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
-  }catch (err){
+  }catch(err){
     setStatus("bad", `ERROR: ${err?.message || "Gagal generate anchor."}`);
   }
 }
