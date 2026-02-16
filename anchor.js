@@ -362,6 +362,185 @@ function titleCaseToken(tok){
     .join(" ");
 }
 
+// ---- vFinal2: Natural 3-word anchor keywords (phrase-aware, anti-verb, anti-weird) ----
+// Tujuan:
+// - Anchor text 3 kata yang natural dibaca.
+// - Hindari kata kerja/prefix verbal (mem-, meng-, mener-, ber-, ter-, di-).
+// - Prioritaskan frasa benda (noun-ish) dan kolokasi 2 kata ("bola salju", "take profit", dll).
+// - Hindari duplikasi ("salju salju") dan kata generik ("analisis", "pendekatan", "strategi" dll)
+
+const GENERIC_TERMS = new Set([
+  "analisis","kajian","studi","tinjauan","evaluasi","pembahasan","panduan","cara","bagaimana",
+  "mengapa","ringkasan","rangkuman","framework","kerangka","pendekatan","strategi","teknik",
+  "membaca","memahami","mengurai","membedah","mengukur","mengoptimalkan","mengidentifikasi",
+  "membangun","menerapkan","menjaga","menentukan","mengelola","menghindari","memetakan",
+  "menuju","pada","dalam","untuk","dengan","sebagai","agar","demi","saat","ketika","versi",
+]);
+
+// Kata target (niche) yang sering menjadi "inti" judul.
+const CORE_TERMS = new Set([
+  "mahjongways","pgsoft","scatter","hitam","maxwin","maximal","win","rtp","roi","ev","rng",
+  "profit","modal","saldo","withdraw","cashback","rebate","bonus","wagering","rollover",
+  "snowball","compounding","reinvestasi","volatilitas","risiko","drawdown","stop","loss","take",
+  "spin","turbo","slow","server","latency","delay","jam","reset","peak",
+]);
+
+// Kolokasi umum yang ingin dipertahankan agar anchor text terasa natural.
+// (Ini bukan "kamus frasa" untuk semua judul, hanya daftar kecil untuk mencegah hasil aneh.)
+const SPECIAL_BIGRAMS = new Set([
+  "bola salju",
+  "take profit",
+  "stop loss",
+  "manajemen risiko",
+  "profit beruntun",
+  "rtp live",
+  "jam reset",
+  "peak hour",
+  "bet kecil",
+  "bet besar",
+  "scatter hitam",
+  "full scatter",
+]);
+
+function isLikelyVerbId(tok){
+  const t = String(tok || "").toLowerCase();
+  if(!t || t.length < 4) return false;
+  // prefiks verbal umum Indonesia
+  if(/^(me|mem|men|meng|meny|di|ber|ter)/.test(t)) return true;
+  // sufiks verbal umum
+  if(/(kan|i)$/.test(t) && t.length >= 6) return true;
+  return false;
+}
+
+function buildCandidatesWordsAndBigrams(title, corpus){
+  const words = tokenize(title).filter(w => w.length >= 3);
+  const idf = (corpus && corpus.idf) ? corpus.idf : new Map();
+
+  const wordScore = (w) => {
+    if(STOPWORDS_LOCAL.has(w)) return -10;
+    if(GENERIC_TERMS.has(w)) return -3;
+    if(isLikelyVerbId(w)) return -2.5;
+    const base = idf.get(w) || 1;
+    const coreBoost = CORE_TERMS.has(w) ? 1.0 : 0;
+    const lenBoost = Math.min(0.6, Math.max(0, (w.length - 4) * 0.08));
+    return base + coreBoost + lenBoost;
+  };
+
+  const unigram = words
+    .map(w => ({ type:"uni", words:[w], score: wordScore(w) }))
+    .filter(x => x.score > 0);
+
+  const bigram = [];
+  for(let i=0;i<words.length-1;i++){
+    const a = words[i], b = words[i+1];
+    if(a === b) continue; // anti duplikasi: "salju salju"
+    if(STOPWORDS_LOCAL.has(a) || STOPWORDS_LOCAL.has(b)) continue;
+    if(GENERIC_TERMS.has(a) || GENERIC_TERMS.has(b)) continue;
+    if(isLikelyVerbId(a) || isLikelyVerbId(b)) continue;
+    // Hindari bigram terlalu template
+    if((a === "mahjongways" && b === "kasino") || (a === "kasino" && b === "online")) continue;
+    const phrase = `${a} ${b}`;
+    const specialBoost = SPECIAL_BIGRAMS.has(phrase) ? 1.6 : 0;
+    const score = (wordScore(a) + wordScore(b)) + 0.9 + specialBoost; // bonus frasa
+    bigram.push({ type:"bi", words:[a,b], score });
+  }
+
+  const seen = new Set();
+  const all = [...bigram, ...unigram].filter(c => {
+    const key = c.words.join(" ");
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  all.sort((x,y) => y.score - x.score);
+  return { words, candidates: all };
+}
+
+function extractNatural3Words(title, corpus){
+  const { candidates } = buildCandidatesWordsAndBigrams(title, corpus);
+  const toks = tokenize(title);
+  const hasBrand = toks.includes("mahjongways");
+
+  // Heuristik natural: jika judul diawali kata kerja aksi, taruh di depan.
+  // Contoh: "Menerapkan Sistem ... MahjongWays" => "Menerapkan MahjongWays Compounding".
+  const ACTION_VERBS = new Set([
+    "menerapkan","membangun","mengoptimalkan","mengidentifikasi","menyusun","menentukan",
+    "menghitung","membaca","membedah","mengurai","memetakan","mengelola","menghindari",
+    "menilai","menguji","memahami","mengenali","menganalisis","membandingkan","menjaga",
+    "menata","mengatur","mengintegrasikan","mengunci","menggulung"
+  ]);
+  const action = (toks[0] && ACTION_VERBS.has(toks[0])) ? toks[0] : null;
+
+  const chosen = [];
+  const used = new Set();
+
+  if(hasBrand){
+    chosen.push("mahjongways");
+    used.add("mahjongways");
+  }
+
+  const pushWord = (w) => {
+    if(!w) return;
+    if(used.has(w)) return;
+    if(action && w === action) return;
+    if(STOPWORDS_LOCAL.has(w) || GENERIC_TERMS.has(w) || isLikelyVerbId(w)) return;
+    chosen.push(w);
+    used.add(w);
+  };
+
+  for(const cand of candidates){
+    if(cand.words.includes("mahjongways")) continue;
+    for(const w of cand.words) pushWord(w);
+    if(chosen.length >= 3) break;
+  }
+
+  if(chosen.length < 3){
+    for(const w of toks){
+      if(CORE_TERMS.has(w)) pushWord(w);
+      if(chosen.length >= 3) break;
+    }
+  }
+
+  // Fallback supaya selalu lengkap 3 token
+  const fallback = ["mahjongways","profit","strategi","panduan"];
+  for(const w of fallback){
+    if(chosen.length >= 3) break;
+    pushWord(w);
+  }
+
+  // Susun agar natural:
+  // - Jika action ada & brand ada: [action, brand, topik]
+  // - Jika action ada & brand tidak ada: [action, topik1, topik2]
+  // - Jika action tidak ada: gunakan hasil biasa (brand cenderung di depan)
+  let finalTokens;
+  if(action){
+    const pool = chosen.filter(w => w !== "mahjongways" && w !== action);
+    if(hasBrand){
+      finalTokens = [action, "mahjongways", pool[0] || "strategi"];
+    }else{
+      finalTokens = [action, pool[0] || "strategi", pool[1] || "panduan"];
+    }
+  }else{
+    finalTokens = chosen.slice(0,3);
+  }
+
+  // Hilangkan duplikasi kata (contoh: "bola salju salju")
+  const uniq = [];
+  for(const w of finalTokens){
+    if(!w) continue;
+    const norm = w.replace(/-/g, " ").trim();
+    if(uniq.some(u => u.replace(/-/g, " ").trim() === norm)) continue;
+    uniq.push(w);
+  }
+  for(const w of fallback){
+    if(uniq.length >= 3) break;
+    if(!uniq.includes(w)) uniq.push(w);
+  }
+
+  return uniq.slice(0,3);
+}
+
 function extractAdaptiveKeywordsFinal(title, corpus, count = 3){
   // 1) Mulai dari extractor lama untuk menjaga kompatibilitas niche MahjongWays.
   // 2) Lalu re-rank dengan bobot IDF per batch agar kata unik muncul lebih sering.
@@ -478,8 +657,8 @@ function makeAnchor(title, baseUrl, suffix, slugLimit, corpus){
   const limit = Number(slugLimit) || 50;
   const slug = smartSlug(title, limit, 12);
   const url = joinUrl(baseUrl, slug + (suffix || ""));
-  // vFinal: selalu 3 kata/keyword yang adaptif per judul + dibantu statistik batch.
-  const keywords = extractAdaptiveKeywordsFinal(title, corpus, 3).join(" ") || "Artikel";
+  // vFinal2: selalu 3 kata yang lebih natural dibaca (anti-verb/anti-generic + dukung frasa 2 kata).
+  const keywords = extractNatural3Words(title, corpus).map(titleCaseToken).join(" ") || "Artikel";
   return { url, anchor: `<a href="${url}">${keywords}</a>` };
 }
 
