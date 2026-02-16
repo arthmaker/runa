@@ -461,6 +461,7 @@ function extractNatural3Words(title, corpus){
   const { candidates } = buildCandidatesWordsAndBigrams(title, corpus);
   const toks = tokenize(title);
   const hasBrand = toks.includes("mahjongways");
+  const titleStartsWithBrand = (toks[0] || "") === "mahjongways";
 
   // Heuristik natural: jika judul diawali kata kerja aksi, taruh di depan.
   // Contoh: "Menerapkan Sistem ... MahjongWays" => "Menerapkan MahjongWays Compounding".
@@ -475,10 +476,8 @@ function extractNatural3Words(title, corpus){
   const chosen = [];
   const used = new Set();
 
-  if(hasBrand){
-    chosen.push("mahjongways");
-    used.add("mahjongways");
-  }
+  // Jangan memaksa brand di depan sejak awal.
+  // Brand akan disisipkan belakangan, lalu diurutkan agar lebih natural.
 
   const pushWord = (w) => {
     if(!w) return;
@@ -510,9 +509,9 @@ function extractNatural3Words(title, corpus){
   }
 
   // Susun agar natural:
-  // - Jika action ada & brand ada: [action, brand, topik]
+  // - Jika action ada & brand ada: [action, topik, brand]
   // - Jika action ada & brand tidak ada: [action, topik1, topik2]
-  // - Jika action tidak ada: gunakan hasil biasa (brand cenderung di depan)
+  // - Jika action tidak ada: topik dulu, brand menyusul sesuai urutan natural
   let finalTokens;
   if(action){
     const pool = chosen.filter(w => w !== "mahjongways" && w !== action);
@@ -532,16 +531,22 @@ function extractNatural3Words(title, corpus){
     finalTokens = chosen.slice(0,3);
   }
 
-  // Re-order ringan agar brand tidak selalu di depan.
+  // Pastikan brand selalu ikut (kalau ada di judul)
+  if(hasBrand && !finalTokens.includes("mahjongways")){
+    if(finalTokens.length < 3) finalTokens.push("mahjongways");
+    else finalTokens[2] = "mahjongways";
+  }
+
+  // Re-order agar urutan lebih natural untuk backlink.
   // Prinsip:
-  // - Jika judul dimulai "MahjongWays" → biarkan di depan.
-  // - Jika tidak, dan token memuat mahjongways → prefer taruh di akhir
-  //   kalau 2 token lainnya sudah cukup spesifik (bukan generik / bukan kata kerja).
+  // - Jika judul dimulai "MahjongWays" → brand boleh di depan.
+  // - Jika action ada → brand biasanya paling enak di akhir.
+  // - Jika tidak action & tidak diawali brand → brand prefer di akhir.
   (function reorderIfNeeded(){
     const t0 = (toks[0] || "").toLowerCase();
     const hasMW = finalTokens.includes("mahjongways");
     if(!hasMW) return;
-    if(t0 === "mahjongways") return;
+    if(titleStartsWithBrand) return;
 
     const others = finalTokens.filter(x => x !== "mahjongways");
     if(others.length < 2) return;
@@ -554,6 +559,14 @@ function extractNatural3Words(title, corpus){
       return ww.length >= 5 || CORE_TERMS.has(ww);
     };
 
+    // 1) Jika action ada, paksa brand di akhir
+    if(action){
+      const pool = finalTokens.filter(x => x !== "mahjongways");
+      if(pool.length >= 2) finalTokens = [pool[0], pool[1], "mahjongways"].slice(0,3);
+      return;
+    }
+
+    // 2) Jika tidak action, taruh brand di akhir kalau 2 token lain cukup spesifik
     if(okSpecific(others[0]) && okSpecific(others[1])){
       finalTokens = [others[0], others[1], "mahjongways"];
     }
