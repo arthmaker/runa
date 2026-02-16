@@ -517,13 +517,47 @@ function extractNatural3Words(title, corpus){
   if(action){
     const pool = chosen.filter(w => w !== "mahjongways" && w !== action);
     if(hasBrand){
-      finalTokens = [action, "mahjongways", pool[0] || "strategi"];
+      // Versi natural: aksi + topik + brand (lebih enak dibaca),
+      // kecuali jika topiknya generik/pendek → brand ditaruh di tengah.
+      const topic = pool[0] || "strategi";
+      if(GENERIC_TERMS.has(topic) || topic.length <= 4){
+        finalTokens = [action, "mahjongways", topic];
+      }else{
+        finalTokens = [action, topic, "mahjongways"];
+      }
     }else{
       finalTokens = [action, pool[0] || "strategi", pool[1] || "panduan"];
     }
   }else{
     finalTokens = chosen.slice(0,3);
   }
+
+  // Re-order ringan agar brand tidak selalu di depan.
+  // Prinsip:
+  // - Jika judul dimulai "MahjongWays" → biarkan di depan.
+  // - Jika tidak, dan token memuat mahjongways → prefer taruh di akhir
+  //   kalau 2 token lainnya sudah cukup spesifik (bukan generik / bukan kata kerja).
+  (function reorderIfNeeded(){
+    const t0 = (toks[0] || "").toLowerCase();
+    const hasMW = finalTokens.includes("mahjongways");
+    if(!hasMW) return;
+    if(t0 === "mahjongways") return;
+
+    const others = finalTokens.filter(x => x !== "mahjongways");
+    if(others.length < 2) return;
+
+    const okSpecific = (w) => {
+      if(!w) return false;
+      const ww = String(w).toLowerCase();
+      if(GENERIC_TERMS.has(ww)) return false;
+      if(isLikelyVerbId(ww)) return false;
+      return ww.length >= 5 || CORE_TERMS.has(ww);
+    };
+
+    if(okSpecific(others[0]) && okSpecific(others[1])){
+      finalTokens = [others[0], others[1], "mahjongways"];
+    }
+  })();
 
   // Hilangkan duplikasi kata (contoh: "bola salju salju")
   const uniq = [];
