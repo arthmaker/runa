@@ -177,14 +177,108 @@
     };
   };
 
+  // ---------- Smarter anchor-text (3 keywords) ----------
+  // Goal: generate *varied* 3-keyword anchor text from the title,
+  // not repetitive defaults like "MahjongWays Strategi Pemain".
+  const GENERIC_WORDS = new Set([
+    // very common / non-informative
+    "kasino","online","di","pada","untuk","sebagai","dan","yang","dengan","dari","ke","dalam","atau","agar","tanpa",
+    // content-format words
+    "strategi","panduan","analisis","kajian","studi","framework","metode","pendekatan","evaluasi","ringkasan","rangkuman",
+    "pilar","teknik","tutorial","dasar","lengkap","membedah","membahas","mengulas","menyoroti","tinjauan","sintesis",
+    // audience words
+    "pemain","player","pemula","pro","profesional","master","member","baru","harian","konsisten","kemenangan",
+    // filler
+    "cara","bagaimana","mengapa","kapan","mana","lebih","mudah","tepat","aman","optimal","maksimal","terukur","efektif",
+  ]);
+
+  const toTitleCase = (s) => s
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w => w.length <= 2 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+
+  // Phrase rules: ordered by importance. Add new phrases here to keep anchor text rich.
+  const PHRASE_RULES = [
+    { re: /snowball\s+profit/i, out: "Snowball Profit" },
+    { re: /bola\s+salju/i, out: "Bola Salju" },
+    { re: /reinvestasi/i, out: "Reinvestasi" },
+    { re: /take\s+profit/i, out: "Take Profit" },
+    { re: /profit\s+beruntun/i, out: "Profit Beruntun" },
+    { re: /over\s*[-]?\s*scaling/i, out: "Over-Scaling" },
+    { re: /manajemen\s+risiko/i, out: "Manajemen Risiko" },
+    { re: /evaluasi\s+konsistensi/i, out: "Evaluasi Konsistensi" },
+    { re: /stabilitas\s+jangka\s+menengah/i, out: "Stabilitas Jangka Menengah" },
+    { re: /jangka\s+menengah/i, out: "Jangka Menengah" },
+    { re: /sesi/i, out: "Sesi" },
+  ];
+
+  const extractKeywordsFromTitle = (title) => {
+    const raw = (title || "").trim();
+    const picked = [];
+
+    // 1) Keep brand/game if present (helps internal linking relevance)
+    if(/mahjongways/i.test(raw)) picked.push("MahjongWays");
+
+    // 2) Prefer meaningful phrases (Snowball Profit, Take Profit, etc.)
+    for(const rule of PHRASE_RULES){
+      if(picked.length >= 3) break;
+      if(rule.re.test(raw) && !picked.includes(rule.out)) picked.push(rule.out);
+    }
+
+    // 3) Fill remaining slots with best tokens (non-generic)
+    if(picked.length < 3){
+      const tokens = raw
+        .replace(/[^\p{L}\p{N}\s-]+/gu, " ")
+        .replace(/\s+/g, " ")
+        .split(" ")
+        .map(t => t.trim())
+        .filter(Boolean);
+
+      const scored = [];
+      for(const t of tokens){
+        const tl = t.toLowerCase();
+        if(GENERIC_WORDS.has(tl)) continue;
+        if(tl === "mahjongways") continue;
+        if(t.length <= 2) continue;
+        if(/^\d+$/.test(tl)) continue;
+        if(picked.some(p => p.toLowerCase() === tl)) continue;
+
+        let score = Math.min(12, t.length);
+        if(["profit","reinvestasi","parsial","konsistensi","stabilitas","menggulung","fondasi"].includes(tl)) score += 6;
+        if(["snowball","bola","salju"].includes(tl)) score += 8;
+        scored.push({ t, score });
+      }
+      scored.sort((a,b) => b.score - a.score);
+      for(const s of scored){
+        if(picked.length >= 3) break;
+        picked.push(toTitleCase(s.t));
+      }
+    }
+
+    // 4) Hard fallback to defaults if still short
+    while(picked.length < 3){
+      const fb = [defaults.domDefault, defaults.actDefault, defaults.ctxDefault];
+      for(const f of fb){
+        if(picked.length >= 3) break;
+        if(!picked.includes(f)) picked.push(f);
+      }
+      break;
+    }
+
+    // Ensure exactly 3 tokens, unique
+    const uniq = [];
+    for(const p of picked){
+      if(!p) continue;
+      if(!uniq.some(u => u.toLowerCase() === String(p).toLowerCase())) uniq.push(String(p));
+      if(uniq.length >= 3) break;
+    }
+    return uniq.slice(0,3);
+  };
+
   const buildAnchorKeywords = (title, defaults) => {
-    const tokens = normalizeTokens(title);
-
-    const dominant = detectDominant(tokens) || defaults.domDefault;
-    const action = pickFirstMatch(tokens, ACTION_MAP) || defaults.actDefault;
-    const context = pickFirstMatch(tokens, CONTEXT_MAP) || defaults.ctxDefault;
-
-    return [dominant, action, context].filter(Boolean).join(" ");
+    const kws = extractKeywordsFromTitle(title);
+    return kws.join(" ");
   };
 
   const copyText = (el) => {

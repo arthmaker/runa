@@ -137,6 +137,10 @@ const TOKEN_BOOST = {
 };
 
 function extractAdaptiveKeywords(title, count = 3) {
+  // NOTE (vFinal): Versi ini dibuat agar anchor text lebih adaptif terhadap judul yang unik/orisinil.
+  // Kunci utamanya: kita tidak "mengandalkan kamus frasa" sempit, tapi mengekstrak kata paling informatif
+  // dari judul + memperkuatnya dengan statistik satu-batch (IDF) dari daftar judul yang sedang diproses.
+  // Hasil: 3 kata (atau 3 token) yang lebih variatif: [Topik] [Fitur/Parameter] [Tujuan/Outcome].
   // Menghasilkan 3 keyword utama yang adaptif (tidak monoton seperti "mahjongways kasino online")
   // Prinsip: ambil 1 kata inti (topik), 1 kata pemicu/parameter (mis. scatter/rtp/server/bet), 1 kata hasil/tujuan (maxwin/profit/modal/dll)
   // Output: array string panjang = count
@@ -307,11 +311,175 @@ function extractAdaptiveKeywords(title, count = 3) {
   return picks.slice(0, count);
 }
 
-function makeAnchor(title, baseUrl, suffix, slugLimit){
+// ===== vFinal: Corpus-aware keywording (TF-IDF ringan per batch judul) =====
+function buildCorpusStats(titles){
+  const docs = (titles || []).map(t => tokenize(t));
+  const df = new Map();
+  const N = Math.max(1, docs.length);
+
+  for(const toks of docs){
+    const uniq = new Set(toks.filter(t => !STOPWORDS_LOCAL.has(t) && t.length >= 3));
+    for(const t of uniq){
+      df.set(t, (df.get(t) || 0) + 1);
+    }
+  }
+
+  // idf smoothing: log((N+1)/(df+1)) + 1
+  const idf = new Map();
+  for(const [t, d] of df.entries()){
+    idf.set(t, Math.log((N + 1) / (d + 1)) + 1);
+  }
+
+  return { N, df, idf };
+}
+
+function normalizeSpecialTokenCase(tok){
+  const t = String(tok || "").trim();
+  if(!t) return t;
+  const up = t.toUpperCase();
+  if(t.toLowerCase() === "mahjongways") return "MahjongWays";
+  if(["RTP","ROI","EV","RNG","AI"].includes(up)) return up;
+  if(t.toLowerCase() === "pgsoft") return "PGSoft";
+  // x1000 / 5x / x100
+  if(/^x\d{1,4}$/i.test(t)) return t.toLowerCase();
+  if(/^\d{1,4}x$/i.test(t)) return t.toLowerCase();
+  return t;
+}
+
+function titleCaseToken(tok){
+  const t = normalizeSpecialTokenCase(tok);
+  // biarkan token yang sudah uppercase (RTP, ROI, dll)
+  if(t === t.toUpperCase() && /[A-Z]/.test(t)) return t;
+  // token multi-kata ("take profit") atau token dengan dash ("take-profit")
+  return t
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map(w => {
+      const w2 = normalizeSpecialTokenCase(w);
+      if(w2 === w2.toUpperCase() && /[A-Z]/.test(w2)) return w2;
+      return w2.charAt(0).toUpperCase() + w2.slice(1);
+    })
+    .join(" ");
+}
+
+function extractAdaptiveKeywordsFinal(title, corpus, count = 3){
+  // 1) Mulai dari extractor lama untuk menjaga kompatibilitas niche MahjongWays.
+  // 2) Lalu re-rank dengan bobot IDF per batch agar kata unik muncul lebih sering.
+  const raw = tokenize(title);
+  if(!raw.length) return ["MahjongWays","Scatter","Hitam"].slice(0, count);
+
+  const STOP = new Set(["yang","dan","di","ke","dari","untuk","pada","dengan","tanpa","agar","sebagai","dalam","oleh","atau","ini","itu","terhadap","guna","demi","lebih","paling","secara","khas","khusus","versi","sisi","cara","mengenai","tentang","atas","bagi","para","sebuah","hingga","kapan","bagaimana","mengapa","apa"]);
+  const GENERIC = new Set(["analisis","kajian","studi","pembahasan","mengulas","membedah","menyoroti","evaluasi","pendekatan","framework","rangkuman","panduan","strategi","metode","teknik","tinjauan","penjelasan","sistematis","objektif","teknis","profesional","rasional","terukur","adaptif","praktis"]);
+
+  // Deteksi frasa penting → jadikan token gabungan (mengurangi hasil yang generik)
+  const phraseTokens = [];
+  const joined = raw.join(" ");
+  const phraseRules = [
+    { re: /\btake\s+profit\b/g, tok: "take-profit" },
+    { re: /\bstop\s+loss\b/g, tok: "stop-loss" },
+    { re: /\brtp\s+live\b/g, tok: "rtp-live" },
+    { re: /\bscatter\s+hitam\b/g, tok: "scatter-hitam" },
+    { re: /\bjam\s+reset\b/g, tok: "jam-reset" },
+  ];
+  for(const r of phraseRules){
+    if(r.re.test(joined)) phraseTokens.push(r.tok);
+  }
+
+  const tokens = raw
+    .filter(t => !STOP.has(t) && t.length >= 3)
+    .map(t => t.toLowerCase());
+
+  const tf = new Map();
+  for(const t of tokens){
+    if(GENERIC.has(t)) continue;
+    tf.set(t, (tf.get(t) || 0) + 1);
+  }
+  for(const pt of phraseTokens){
+    tf.set(pt, (tf.get(pt) || 0) + 2);
+  }
+
+  const idf = corpus?.idf || new Map();
+
+  // Skor: tf * idf + boost posisi awal + boost kata niche
+  const scores = new Map();
+  const nicheBoost = {
+    mahjongways: 2.8,
+    pgsoft: 2.2,
+    scatter: 2.0,
+    hitam: 1.9,
+    server: 1.8,
+    rtp: 1.8,
+    bonus: 1.6,
+    profit: 1.6,
+    modal: 1.6,
+    volatilitas: 1.6,
+    rng: 1.6,
+    snowball: 2.0,
+    reinvestasi: 2.0,
+    bertahap: 1.4,
+  };
+
+  const add = (k, v) => scores.set(k, (scores.get(k) || 0) + v);
+
+  tokens.forEach((t, idx) => {
+    if(GENERIC.has(t)) return;
+    const baseTf = tf.get(t) || 1;
+    const baseIdf = idf.get(t) || 1.0;
+    const posBoost = Math.max(0, 6 - idx) * 0.25; // judul awal lebih penting
+    const nb = nicheBoost[t] || 1.0;
+    add(t, baseTf * baseIdf * nb + posBoost);
+  });
+
+  for(const [pt, f] of tf.entries()){
+    if(!pt.includes("-")) continue;
+    const baseIdf = idf.get(pt) || 1.2;
+    add(pt, f * baseIdf * 1.6);
+  }
+
+  // Wajib: jika ada mahjongways, jadikan salah satu keyword.
+  const picks = [];
+  if(tokens.includes("mahjongways")) picks.push("mahjongways");
+
+  const sorted = [...scores.entries()]
+    .filter(([t, s]) => s > 0 && !GENERIC.has(t))
+    .sort((a, b) => b[1] - a[1]);
+
+  const isTooSimilar = (a, b) => {
+    if(!a || !b) return false;
+    if(a === b) return true;
+    // simple similarity: share same root prefix >= 6
+    const aa = a.replace(/-/g, "");
+    const bb = b.replace(/-/g, "");
+    const pre = Math.min(aa.length, bb.length, 10);
+    let same = 0;
+    for(let i=0;i<pre;i++) if(aa[i]===bb[i]) same++; else break;
+    return same >= 6;
+  };
+
+  for(const [t] of sorted){
+    if(picks.length >= count) break;
+    if(picks.some(p => isTooSimilar(p, t))) continue;
+    if(STOPWORDS_LOCAL.has(t)) continue;
+    picks.push(t);
+  }
+
+  // Fallback jika masih kurang
+  const fb = ["mahjongways","scatter","hitam"];
+  while(picks.length < count){
+    const v = fb[picks.length] || fb[fb.length-1];
+    if(!picks.includes(v)) picks.push(v); else picks.push(v + "1");
+  }
+
+  // Format output: 3 token, masing-masing dibuat enak dibaca.
+  return picks.slice(0, count).map(t => titleCaseToken(t));
+}
+
+function makeAnchor(title, baseUrl, suffix, slugLimit, corpus){
   const limit = Number(slugLimit) || 50;
   const slug = smartSlug(title, limit, 12);
   const url = joinUrl(baseUrl, slug + (suffix || ""));
-  const keywords = extractAdaptiveKeywords(title, 2, 4).join(" ") || "artikel";
+  // vFinal: selalu 3 kata/keyword yang adaptif per judul + dibantu statistik batch.
+  const keywords = extractAdaptiveKeywordsFinal(title, corpus, 3).join(" ") || "Artikel";
   return { url, anchor: `<a href="${url}">${keywords}</a>` };
 }
 
@@ -352,7 +520,8 @@ function generateAnchors(){
       return;
     }
 
-    const anchors = titles.map(t => makeAnchor(t, baseUrl, suffix, slugLimit).anchor);
+    const corpus = buildCorpusStats(titles);
+    const anchors = titles.map(t => makeAnchor(t, baseUrl, suffix, slugLimit, corpus).anchor);
     outAnchorEl.value = anchors.join("\n");
     setStatus("ok", `Sukses: ${titles.length} anchor dibuat. Klik 'Ambil Link dari Anchor' untuk daftar URL.`);
   }catch(err){
